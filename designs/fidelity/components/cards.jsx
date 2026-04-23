@@ -51,10 +51,22 @@ function ImagePlaceholder({ label, accentFill, index }) {
 
 function StoryCard({ story, index = 0, isLast = false }) {
   const [hovered, setHovered] = React.useState(false);
+  const [pos, setPos]         = React.useState({ x: 0, y: 0 });
   const cardRef = React.useRef(null);
   const { w, h } = useElementSize(cardRef, 340, 480);
   const isMobile = useIsMobile();
   const maskId = React.useId().replace(/:/g, '');
+
+  const recordPointer = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ x: e.clientX - r.left, y: e.clientY - r.top });
+  };
+  // Farthest-corner distance — radius needed to fully cover the card from
+  // the current pointer position, so the spread always reaches every edge.
+  const maxR = Math.hypot(
+    Math.max(pos.x, w - pos.x),
+    Math.max(pos.y, h - pos.y)
+  ) + 6;
 
   const accentFill = CARD_FILLS[index % CARD_FILLS.length];
   const [bc1] = CARD_BORDERS[index % CARD_BORDERS.length];
@@ -79,19 +91,6 @@ function StoryCard({ story, index = 0, isLast = false }) {
       { segmentsH: [3, 4], segmentsV: [5, 6], curve: 0.55, cornerJitter: 0.7, cornerOffset: 4 });
   }, [w, h, R, seed]);
 
-  // Watercolor brush: horizontal sweep with one up-down oscillation
-  // (a 90°-rotated "Z" — enters mid-left, arcs up, dives down, exits mid-right)
-  const brushPath = React.useMemo(() => {
-    if (!w || !h) return '';
-    return `M ${-w * 0.18} ${h * 0.50} `
-         + `L ${w * 0.28} ${-h * 0.22} `
-         + `L ${w * 0.60} ${h * 1.22} `
-         + `L ${w * 1.18} ${h * 0.50}`;
-  }, [w, h]);
-
-  // Stroke width roughly 1.2× card height so the brush fully covers each pass
-  const brushStrokeW = h * 1.25;
-
   // Mobile: cards span full viewport width (bleed out of section padding)
   // — negative margin pulls edges past the section's horizontal padding, and
   // inner padding pushes the content back inside the viewport.
@@ -100,8 +99,8 @@ function StoryCard({ story, index = 0, isLast = false }) {
   return (
     <article
       ref={cardRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={(e) => { recordPointer(e); setHovered(true); }}
+      onMouseLeave={(e) => { recordPointer(e); setHovered(false); }}
       style={{
         position: 'relative',
         cursor: 'pointer',
@@ -145,22 +144,18 @@ function StoryCard({ story, index = 0, isLast = false }) {
             segmentsH={[3, 4]} segmentsV={[5, 6]}
             curve={0.55} cornerJitter={0.7} cornerOffset={4}
           />
-          {/* Layer 2 — watercolor brush hover overlay, revealed via a
-              mask whose stroke-dashoffset animates from 1 → 0. The mask
-              path itself is a 90°-rotated Z, so the tint is painted on
-              in a continuous zig-zag sweep. */}
+          {/* Layer 2 — paint-spreading hover overlay. A circle in the mask
+              expands outward from the pointer's entry coordinates with
+              linear easing, so the tint bleeds uniformly from the cursor
+              like ink spreading on paper. */}
           {w > 0 && h > 0 && (
             <svg aria-hidden="true" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
               style={{ position:'absolute', top:0, left:0, overflow:'visible', pointerEvents:'none', zIndex:0 }}>
               <defs>
                 <mask id={`brush-${maskId}`} maskUnits="userSpaceOnUse"
                   x={-w} y={-h} width={w * 3} height={h * 3}>
-                  <path d={brushPath}
-                    stroke="white" strokeWidth={brushStrokeW}
-                    strokeLinecap="round" strokeLinejoin="round" fill="none"
-                    pathLength="1" strokeDasharray="1 1"
-                    strokeDashoffset={hovered ? 0 : 1}
-                    style={{ transition: 'stroke-dashoffset 880ms cubic-bezier(.45,.05,.35,1)' }} />
+                  <circle cx={pos.x} cy={pos.y} r={hovered ? maxR : 0} fill="white"
+                    style={{ transition: 'r 720ms linear' }} />
                 </mask>
               </defs>
               <g mask={`url(#brush-${maskId})`}>

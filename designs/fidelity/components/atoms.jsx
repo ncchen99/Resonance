@@ -289,6 +289,7 @@ const BTN_SEEDS = { primary:3, secondary:201, ghost:401, outline:601, ctaLight:8
 
 function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
   const [hovered, setHovered] = React.useState(false);
+  const [pos, setPos]         = React.useState({ x: 0, y: 0 });
   const ref = React.useRef(null);
   const { w, h } = useElementSize(ref, 160, 50);
   const v    = BTN_VARIANTS[variant] || BTN_VARIANTS.primary;
@@ -296,13 +297,30 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
   const R    = h > 0 ? h / 2 : 25;
   // Buttons: moderate wobble; perpAmp clamp in wobRect keeps it readable.
   const mag  = Math.min(w, h) * 0.050;
+  const maskId = React.useId().replace(/:/g, '');
+
+  const recordPointer = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setPos({ x: e.clientX - r.left, y: e.clientY - r.top });
+  };
+  const maxR = Math.hypot(
+    Math.max(pos.x, w - pos.x),
+    Math.max(pos.y, h - pos.y)
+  ) + 4;
+
+  const cornerOff = Math.min(w, h) * 0.035;
+  const overlayPath = React.useMemo(() => {
+    if (!w || !h) return '';
+    return wobRect(w, h, R, seed, mag,
+      { segmentsH: [3, 4], segmentsV: 1, curve: 1.9, cornerJitter: 1.6, cornerOffset: cornerOff });
+  }, [w, h, R, seed, mag, cornerOff]);
 
   return (
     <button
       ref={ref}
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={(e) => { recordPointer(e); setHovered(true); }}
+      onMouseLeave={(e) => { recordPointer(e); setHovered(false); }}
       style={{
         position: 'relative',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -324,24 +342,23 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
         segmentsH={[3, 4]} segmentsV={1}
         curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
       />
-      {/* Brush hover overlay — diagonal sweep from TL to BR */}
-      <div aria-hidden="true" style={{
-        position: 'absolute', inset: 0,
-        clipPath: hovered
-          ? 'polygon(0% 0%, 220% 0%, 0% 220%)'
-          : 'polygon(0% 0%, 0% 0%, 0% 0%)',
-        transition: 'clip-path 520ms cubic-bezier(.45,.05,.35,1)',
-        pointerEvents: 'none',
-      }}>
-        <HandDrawnBorder
-          w={w} h={h} R={R} seed={seed} mag={mag}
-          fillColor={v.hoverOverlay || 'oklch(0% 0 0 / 0.12)'}
-          strokeColor="transparent"
-          strokeWidth={0}
-          segmentsH={[3, 4]} segmentsV={1}
-          curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
-        />
-      </div>
+      {/* Hover overlay — paint spreads from the pointer's entry point with
+          linear easing. */}
+      {w > 0 && h > 0 && (
+        <svg aria-hidden="true" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+          style={{ position:'absolute', top:0, left:0, overflow:'visible', pointerEvents:'none', zIndex:0 }}>
+          <defs>
+            <mask id={`btn-${maskId}`} maskUnits="userSpaceOnUse"
+              x={-w} y={-h} width={w * 3} height={h * 3}>
+              <circle cx={pos.x} cy={pos.y} r={hovered ? maxR : 0} fill="white"
+                style={{ transition: 'r 520ms linear' }} />
+            </mask>
+          </defs>
+          <g mask={`url(#btn-${maskId})`}>
+            <path d={overlayPath} fill={v.hoverOverlay || 'oklch(0% 0 0 / 0.12)'} />
+          </g>
+        </svg>
+      )}
       <span style={{ position:'relative', zIndex:1 }}>{children}</span>
     </button>
   );
