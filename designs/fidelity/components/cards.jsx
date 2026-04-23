@@ -90,6 +90,7 @@ function StoryCard({ story, index = 0 }) {
         strokeColor={bc1}
         chalkSeed={index}
         segmentsH={[3, 4]} segmentsV={[5, 6]}
+        curve={0.55} cornerJitter={0.7} cornerOffset={4}
       />
 
       {/* Card content — z-index above the SVG border layer */}

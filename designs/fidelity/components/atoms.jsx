@@ -25,6 +25,17 @@ function wobRect(W, H, R, seed, mag, opts) {
   const m = mag != null ? mag : Math.min(W, H) * 0.025;
   const K = 0.552; // bezier quarter-circle approximation constant
 
+  // curve: multiplier on edge wobble amplitude (how "curvy" each edge looks).
+  //        1 = default; <1 calmer (use on large surfaces like cards);
+  //        >1 more pronounced (use on small elements like buttons/badges).
+  // cornerJitter: multiplier on per-corner radius variation — bigger values
+  //        make the four corners differ more, strengthening hand-drawn feel.
+  // cornerOffset: pixel amount each corner's endpoint shifts along its edge,
+  //        so opposite corners aren't perfectly aligned (avatar-style asymmetry).
+  const curve        = (opts && opts.curve)        != null ? opts.curve        : 1;
+  const cornerJitter = (opts && opts.cornerJitter) != null ? opts.cornerJitter : 1;
+  const cornerOffset = (opts && opts.cornerOffset) != null ? opts.cornerOffset : 0;
+
   // Resolve segment count — number, or [lo, hi] picked via the seeded PRNG.
   const resolveSegs = (val, fallback) => {
     if (val == null) return fallback;
@@ -39,15 +50,27 @@ function wobRect(W, H, R, seed, mag, opts) {
 
   // Per-corner radius — same roundness, slightly different sizes per corner.
   // Clamped to 0 when R approaches min(W,H)/2 (pills stay perfect pills).
-  const rVar = Math.min(R * 0.07, Math.max(0, Math.min(W, H) / 2 - R) * 0.4);
+  const rVar = Math.min(R * 0.07, Math.max(0, Math.min(W, H) / 2 - R) * 0.4) * cornerJitter;
   const Rtl = R + (rnd() - 0.5) * 2 * rVar;
   const Rtr = R + (rnd() - 0.5) * 2 * rVar;
   const Rbr = R + (rnd() - 0.5) * 2 * rVar;
   const Rbl = R + (rnd() - 0.5) * 2 * rVar;
 
-  // Edge wobble amplitude — gentler than v7, capped by shape size so small
-  // elements (avatars, badges) don't pick up sharp zigzag kinks.
-  const perpAmp = Math.min(m * 0.95, Math.min(W, H) * 0.032);
+  // Per-corner endpoint offset — nudges where each corner meets its neighbor
+  // edges, so top/bottom aren't perfect mirrors. Capped so pills stay stable.
+  const oCap = Math.max(0, Math.min(W, H) * 0.5 - Math.max(Rtl, Rtr, Rbr, Rbl)) * 0.6;
+  const oMag = Math.min(cornerOffset, oCap);
+  const ox = () => (rnd() - 0.5) * 2 * oMag;
+  const oy = () => (rnd() - 0.5) * 2 * oMag;
+  const tlX = ox(), tlY = oy();
+  const trX = ox(), trY = oy();
+  const brX = ox(), brY = oy();
+  const blX = ox(), blY = oy();
+
+  // Edge wobble amplitude — scaled by `curve`. Clamp still prevents kinks on
+  // tiny elements, but with curve>1 we allow a bigger cap so buttons/badges
+  // can show real wobble despite being short.
+  const perpAmp = Math.min(m * 0.95 * curve, Math.min(W, H) * 0.032 * Math.max(1, curve));
 
   const f = n => +n.toFixed(2);
   const C = (x1, y1, x2, y2, x, y) =>
@@ -89,23 +112,41 @@ function wobRect(W, H, R, seed, mag, opts) {
     return result;
   };
 
-  const parts = [`M 0,${f(Rtl)}`];
+  // Corner endpoint positions, with small per-corner offset applied.
+  const TLa = [0,              Rtl + tlY];        // TL start (on left edge)
+  const TLb = [Rtl + tlX,      0];                // TL end   (on top edge)
+  const TRa = [W - Rtr + trX,  0];                // TR start (on top edge)
+  const TRb = [W,              Rtr + trY];        // TR end   (on right edge)
+  const BRa = [W,              H - Rbr + brY];    // BR start (on right edge)
+  const BRb = [W - Rbr + brX,  H];                // BR end   (on bottom edge)
+  const BLa = [Rbl + blX,      H];                // BL start (on bottom edge)
+  const BLb = [0,              H - Rbl + blY];    // BL end   (on left edge)
 
-  // TL corner: (0, Rtl) → (Rtl, 0)
-  parts.push(C(0, Rtl * (1 - K), Rtl * (1 - K), 0, Rtl, 0));
-  parts.push(...buildEdge([Rtl, 0], [W - Rtr, 0], 'x', segH));
+  const parts = [`M ${f(TLa[0])},${f(TLa[1])}`];
 
-  // TR corner: (W - Rtr, 0) → (W, Rtr)
-  parts.push(C(W - Rtr + Rtr * K, 0, W, Rtr * (1 - K), W, Rtr));
-  parts.push(...buildEdge([W, Rtr], [W, H - Rbr], 'y', segV));
+  // TL corner: TLa → TLb
+  parts.push(C(0, TLa[1] * (1 - K) + TLb[1] * K,
+               TLb[0] * (1 - K) + TLa[0] * K, 0,
+               TLb[0], TLb[1]));
+  parts.push(...buildEdge(TLb, TRa, 'x', segH));
 
-  // BR corner: (W, H - Rbr) → (W - Rbr, H)
-  parts.push(C(W, H - Rbr + Rbr * K, W - Rbr + Rbr * K, H, W - Rbr, H));
-  parts.push(...buildEdge([W - Rbr, H], [Rbl, H], 'x', segH));
+  // TR corner: TRa → TRb
+  parts.push(C(TRa[0] + (W - TRa[0]) * K, 0,
+               W, TRb[1] * (1 - K),
+               TRb[0], TRb[1]));
+  parts.push(...buildEdge(TRb, BRa, 'y', segV));
 
-  // BL corner: (Rbl, H) → (0, H - Rbl)
-  parts.push(C(Rbl - Rbl * K, H, 0, H - Rbl + Rbl * K, 0, H - Rbl));
-  parts.push(...buildEdge([0, H - Rbl], [0, Rtl], 'y', segV));
+  // BR corner: BRa → BRb
+  parts.push(C(W, BRa[1] + (H - BRa[1]) * K,
+               BRb[0] + (W - BRb[0]) * K, H,
+               BRb[0], BRb[1]));
+  parts.push(...buildEdge(BRb, BLa, 'x', segH));
+
+  // BL corner: BLa → BLb
+  parts.push(C(BLa[0] * (1 - K), H,
+               0, BLb[1] + (H - BLb[1]) * K,
+               BLb[0], BLb[1]));
+  parts.push(...buildEdge(BLb, TLa, 'y', segV));
 
   parts.push('Z');
   return parts.join(' ');
@@ -131,12 +172,12 @@ function useElementSize(ref, defaultW = 160, defaultH = 48) {
 // ── HandDrawnBorder ───────────────────────────────────────────────────────────
 // Single SVG bezier path used for BOTH fill and stroke — no misalignment ever,
 // no secondary pencil pass (kept the design clean, one confident line).
-function HandDrawnBorder({ w, h, R = 22, seed = 1, mag, fillColor, strokeColor, strokeWidth = 2.5, chalkSeed, segmentsH, segmentsV }) {
+function HandDrawnBorder({ w, h, R = 22, seed = 1, mag, fillColor, strokeColor, strokeWidth = 2.5, chalkSeed, segmentsH, segmentsV, curve = 1, cornerJitter = 1, cornerOffset = 0 }) {
   if (!w || !h) return null;
   const m       = mag != null ? mag : Math.min(w, h) * 0.025;
-  const segKey  = JSON.stringify([segmentsH, segmentsV]);
+  const segKey  = JSON.stringify([segmentsH, segmentsV, curve, cornerJitter, cornerOffset]);
   const path    = React.useMemo(
-    () => wobRect(w, h, R, seed, m, { segmentsH, segmentsV }),
+    () => wobRect(w, h, R, seed, m, { segmentsH, segmentsV, curve, cornerJitter, cornerOffset }),
     [w, h, R, seed, m, segKey]
   );
   const chalkId = chalkSeed != null ? `chalk-hdb-${chalkSeed}` : null;
@@ -267,7 +308,8 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
         w={w} h={h} R={R} seed={seed} mag={mag}
         fillColor={style.fillColor || v.fill}
         strokeColor={v.stroke}
-        segmentsH={[2, 3]} segmentsV={1}
+        segmentsH={[3, 4]} segmentsV={1}
+        curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
       />
       <span style={{ position:'relative', zIndex:1 }}>{children}</span>
     </button>
@@ -285,6 +327,7 @@ function HandDrawnAvatar({ initials='?', size=36, color='var(--color-terracotta-
         strokeColor="oklch(36% 0.06 60 / 0.55)"
         strokeWidth={1.5}
         segmentsH={1} segmentsV={1}
+        curve={1.3} cornerJitter={3.2} cornerOffset={size * 0.06}
       />
       <span style={{
         position:'absolute', inset:0,
@@ -427,7 +470,8 @@ function TagPill({ children, color='var(--color-yellow)', seed }) {
         fillColor={color}
         strokeColor="oklch(32% 0.05 60 / 0.45)"
         strokeWidth={1.2}
-        segmentsH={[2, 3]} segmentsV={1}
+        segmentsH={[3, 4]} segmentsV={1}
+        curve={2.0} cornerJitter={1.8} cornerOffset={Math.min(w, h) * 0.04}
       />
       <span style={{ position:'relative', zIndex:1 }}>{children}</span>
     </span>

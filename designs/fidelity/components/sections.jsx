@@ -98,17 +98,17 @@ function SiteHeader({ onNavigate }) {
         </div>
       </div>
 
-      {/* Hand-drawn wavy underline — fades in when scrolled.
-          Positioned well below the header edge so it reads as a detached
-          flourish rather than an outline on the header itself. */}
+      {/* Hand-drawn wavy underline — sits at the header's own bottom edge,
+          on top of the header's translucent background, so it reads as part
+          of the header rather than floating over the page body. */}
       <div style={{
-        position:'absolute', left:0, right:0, bottom:-14, height:8, pointerEvents:'none',
+        position:'absolute', left:0, right:0, bottom:0, height:10, pointerEvents:'none',
         opacity: scrolled ? 1 : 0, transition: 'opacity 300ms ease',
       }}>
-        <svg viewBox="0 0 1440 8" preserveAspectRatio="none" aria-hidden="true"
-          style={{ display:'block', width:'100%', height:8, overflow:'visible' }}>
+        <svg viewBox="0 0 1440 10" preserveAspectRatio="none" aria-hidden="true"
+          style={{ display:'block', width:'100%', height:10, overflow:'visible' }}>
           <path d={wavyLine(1440, 211, 1.8, 18)}
-            transform="translate(0, 4)"
+            transform="translate(0, 6)"
             stroke="oklch(55% 0.05 60 / 0.32)" strokeWidth="1.3"
             fill="none" strokeLinecap="round" />
         </svg>
@@ -235,15 +235,15 @@ function CardFeedSection() {
     }}>
       {/* Wavy top edge — seals this section against whatever is above and
           clips any blob that bled down from Hero with a hand-drawn line. */}
-      <SectionEdge fill="var(--color-cream-dark)" seed={41} height={56}
-        amplitude={0.22} steps={16} zIndex={4} />
+      <SectionEdge fill="var(--color-cream-dark)" seed={41} height={72}
+        amplitude={0.5} steps={14} zIndex={4} />
 
       {/* Subtle bg blob — now clipped by CTA's SectionEdge, not a hard line */}
       <div style={{ position: 'absolute', bottom: -60, left: -40, opacity: 0.15, pointerEvents: 'none' }}>
         <OrganiBlob variant={4} fill="var(--color-yellow)" size={320} />
       </div>
 
-      <GrainOverlay opacity={0.04} extendTop={56} />
+      <GrainOverlay opacity={0.04} extendTop={72} />
 
       <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         {/* Section header */}
@@ -302,8 +302,8 @@ function CTASection() {
       textAlign: 'center',
     }}>
       {/* Wavy top edge — clips CardFeed's bottom blob with a hand-drawn line */}
-      <SectionEdge fill="var(--color-terracotta)" seed={137} height={64}
-        amplitude={0.22} steps={15} zIndex={4} />
+      <SectionEdge fill="var(--color-terracotta)" seed={137} height={80}
+        amplitude={0.55} steps={13} zIndex={4} />
 
       {/* Decorative blobs — z:0, strictly behind everything */}
       <div style={{ position:'absolute', top:-60, left:'5%', opacity:0.15, pointerEvents:'none', zIndex:0 }}>
@@ -315,7 +315,7 @@ function CTASection() {
 
       {/* Grain — extends up over SectionEdge so the wave region picks up the
           same texture and doesn't read as a flat color block. */}
-      <GrainOverlay opacity={0.06} extendTop={64}/>
+      <GrainOverlay opacity={0.06} extendTop={80}/>
 
       {/* Content — z:4, clearly above all decoration */}
       <div style={{
@@ -363,9 +363,9 @@ function SiteFooter() {
       position: 'relative',
       overflow: 'visible',
     }}>
-      <SectionEdge fill="var(--color-text)" seed={233} height={56}
-        amplitude={0.22} steps={15} zIndex={4} />
-      <GrainOverlay opacity={0.04} extendTop={56} />
+      <SectionEdge fill="var(--color-text)" seed={233} height={72}
+        amplitude={0.5} steps={14} zIndex={4} />
+      <GrainOverlay opacity={0.04} extendTop={72} />
       <div style={{
         maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28,
