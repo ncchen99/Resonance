@@ -249,11 +249,53 @@ const BLOB_PATHS = [
   "M44.8,-58.3C56.3,-47.7,62.6,-31.8,66.2,-15.1C69.8,1.6,70.7,19.2,63.8,32.5C56.9,45.8,42.2,54.8,26.8,61.5C11.4,68.2,-4.7,72.6,-19.3,69.3C-33.9,66,-47,55,-57.5,41.1C-68,27.2,-75.9,10.4,-75.3,-6.7C-74.7,-23.8,-65.6,-41.2,-52.7,-51.8C-39.8,-62.4,-23.1,-66.2,-5.6,-60C11.9,-53.8,33.3,-68.9,44.8,-58.3Z",
 ];
 
-function OrganiBlob({ variant=0, fill='oklch(88% 0.08 55)', size=200, style={}, opacity=1 }) {
+function OrganiBlob({ variant=0, fill='oklch(88% 0.08 55)', size=200, style={}, opacity=1, grain=0.4 }) {
+  const id = React.useId().replace(/:/g, '');
+  const d  = BLOB_PATHS[variant % BLOB_PATHS.length];
   return (
     <svg viewBox="-90 -90 180 180" width={size} height={size}
       style={{ display:'block', opacity, ...style }} aria-hidden="true">
-      <path d={BLOB_PATHS[variant % BLOB_PATHS.length]} fill={fill}/>
+      {grain > 0 && (
+        <defs>
+          <filter id={`blob-grain-${id}`} x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"
+              stitchTiles="stitch" seed={variant + 1}/>
+            <feColorMatrix type="saturate" values="0"/>
+            <feComponentTransfer>
+              <feFuncA type="linear" slope={grain}/>
+            </feComponentTransfer>
+            <feComposite in2="SourceGraphic" operator="in"/>
+          </filter>
+        </defs>
+      )}
+      <path d={d} fill={fill}/>
+      {grain > 0 && <path d={d} fill="black" filter={`url(#blob-grain-${id})`}/>}
+    </svg>
+  );
+}
+
+// ── ShapeGrain ────────────────────────────────────────────────────────────────
+// Paper-grain overlay clipped to an arbitrary SVG path (e.g. a wobRect border).
+// Drops a second path filled with fractalNoise, kept inside the shape by
+// feComposite operator="in". Use on top of a HandDrawnBorder fill layer.
+function ShapeGrain({ w, h, d, opacity = 0.2, frequency = 0.9, seed = 1, zIndex = 0 }) {
+  const id = React.useId().replace(/:/g, '');
+  if (!w || !h || !d) return null;
+  return (
+    <svg aria-hidden="true" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+      style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex }}>
+      <defs>
+        <filter id={`sg-${id}`} x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency={frequency} numOctaves="2"
+            stitchTiles="stitch" seed={seed}/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feComponentTransfer>
+            <feFuncA type="linear" slope={opacity}/>
+          </feComponentTransfer>
+          <feComposite in2="SourceGraphic" operator="in"/>
+        </filter>
+      </defs>
+      <path d={d} fill="black" filter={`url(#sg-${id})`}/>
     </svg>
   );
 }
@@ -335,15 +377,23 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
         color: style.color || v.text,
       }}
     >
+      {/* Layer 1 — fill only. Stroke is drawn on top so grain + hover paint
+          can't tint the outline. */}
       <HandDrawnBorder
         w={w} h={h} R={R} seed={seed} mag={mag}
         fillColor={style.fillColor || v.fill}
-        strokeColor={v.stroke}
+        strokeColor="transparent"
+        strokeWidth={0}
         segmentsH={[3, 4]} segmentsV={1}
         curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
       />
-      {/* Hover overlay — paint spreads from the pointer's entry point with
-          linear easing. */}
+      {/* Layer 2 — paper-grain clipped to the button shape.
+          Skipped on transparent-fill variants where grain would show over
+          whatever sits behind the button. */}
+      {v.fill !== 'transparent' && (
+        <ShapeGrain w={w} h={h} d={overlayPath} opacity={0.38} frequency={1.1} seed={seed}/>
+      )}
+      {/* Layer 3 — hover overlay (paint spreads from pointer entry). */}
       {w > 0 && h > 0 && (
         <svg aria-hidden="true" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
           style={{ position:'absolute', top:0, left:0, overflow:'visible', pointerEvents:'none', zIndex:0 }}>
@@ -351,7 +401,7 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
             <mask id={`btn-${maskId}`} maskUnits="userSpaceOnUse"
               x={-w} y={-h} width={w * 3} height={h * 3}>
               <circle cx={pos.x} cy={pos.y} r={hovered ? maxR : 0} fill="white"
-                style={{ transition: 'r 520ms linear' }} />
+                style={{ transition: 'r 340ms linear' }} />
             </mask>
           </defs>
           <g mask={`url(#btn-${maskId})`}>
@@ -359,6 +409,15 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
           </g>
         </svg>
       )}
+      {/* Layer 4 — stroke-only border on top. Same seed/params → identical
+          path geometry, so the line sits exactly on the fill's edge but is
+          never covered by grain or the hover wash. */}
+      <HandDrawnBorder
+        w={w} h={h} R={R} seed={seed} mag={mag}
+        strokeColor={v.stroke}
+        segmentsH={[3, 4]} segmentsV={1}
+        curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
+      />
       <span style={{ position:'relative', zIndex:1 }}>{children}</span>
     </button>
   );
@@ -466,12 +525,20 @@ function SectionEdge({
   strokeWidth = 1.2,
 }) {
   const W = 1440;
+  // On narrow viewports the SVG is scaled by preserveAspectRatio="none",
+  // so 14 steps authored for 1440px collapse into a busy, jittery line on a
+  // 375px screen. Use fewer segments — and a different seed — so the mobile
+  // edge reads as its own, naturally calmer hand-drawn curve rather than a
+  // squashed desktop one.
+  const isMobile = useIsMobile(640);
+  const effSteps = isMobile ? Math.max(4, Math.round(steps * 0.45)) : steps;
+  const effSeed  = isMobile ? seed + 9173 : seed;
   const { fillD, strokeD } = React.useMemo(() => {
     const amp = height * amplitude;
     // baseY sits near the bottom of the reserved band so most of the room
     // above the wave is occupied by `topColor`.
     const baseY = height * 0.78;
-    const pts = wavyPoints(W, baseY, amp, seed, steps);
+    const pts = wavyPoints(W, baseY, amp, effSeed, effSteps);
     const strokeD = pointsToBezier(pts);
     // Build the fill: start top-left, across top, down to wave end, wavy back.
     const f = n => +n.toFixed(2);
@@ -485,7 +552,7 @@ function SectionEdge({
     }
     fillD += ' Z';
     return { fillD, strokeD };
-  }, [seed, height, amplitude, steps]);
+  }, [effSeed, height, amplitude, effSteps]);
 
   return (
     <div aria-hidden="true" style={{
@@ -542,10 +609,134 @@ function TagPill({ children, color='var(--color-yellow)', seed }) {
   );
 }
 
+// ── HamburgerIcon ─────────────────────────────────────────────────────────────
+// Mirrors /assets/icons/hamburger.svg — three gently-wobbling horizontal
+// strokes. Kept inline so the Babel-standalone setup doesn't need to fetch.
+function HamburgerIcon({ size = 22, color = 'currentColor', strokeWidth = 1.8 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={color} strokeWidth={strokeWidth}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3.4,6.6 C6.8,6.1 12.1,7.4 16.3,6.5 C18.7,6.0 20.2,6.9 20.7,6.8"/>
+      <path d="M3.1,12.1 C6.6,11.6 11.8,12.8 16.6,11.9 C19.1,11.4 20.3,12.2 20.9,12.0"/>
+      <path d="M3.5,17.5 C7.1,17.0 11.9,18.2 16.1,17.2 C18.7,16.7 20.1,17.6 20.6,17.4"/>
+    </svg>
+  );
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+// Reusable hand-drawn dialog. Shape + grain match StoryCard so modals read as
+// part of the same paper-on-desk world. Portaled into <body>, closes on ESC
+// or backdrop click, locks page scroll while open.
+function Modal({
+  open, onClose, children,
+  maxWidth = 440,
+  seed = 17,
+  fillColor = 'var(--color-card-bg)',
+  borderColor = 'oklch(40% 0.06 60)',
+  padding = '32px 28px',
+  ariaLabel = 'Dialog',
+}) {
+  const ref = React.useRef(null);
+  const { w, h } = useElementSize(ref, maxWidth, 320);
+  const R = 26;
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = e => { if (e.key === 'Escape') onClose && onClose(); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const borderPath = (w && h)
+    ? wobRect(w, h, R, seed, Math.min(w, h) * 0.025,
+        { segmentsH: [3, 4], segmentsV: [5, 6], curve: 0.6, cornerJitter: 0.9, cornerOffset: 5 })
+    : '';
+
+  return ReactDOM.createPortal(
+    <div
+      role="dialog" aria-modal="true" aria-label={ariaLabel}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 'clamp(16px, 4vw, 32px)',
+        background: 'oklch(20% 0.04 60 / 0.42)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)',
+        animation: 'resModalFadeIn 220ms ease',
+      }}
+    >
+      <div
+        ref={ref}
+        onClick={e => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth,
+          padding,
+          animation: 'resModalPopIn 280ms cubic-bezier(.2,.9,.3,1.05)',
+        }}
+      >
+        {/* Fill + chalk texture (no stroke) */}
+        <HandDrawnBorder
+          w={w} h={h} R={R} seed={seed}
+          fillColor={fillColor}
+          strokeColor="transparent"
+          strokeWidth={0}
+          chalkSeed={seed + 1}
+          segmentsH={[3, 4]} segmentsV={[5, 6]}
+          curve={0.6} cornerJitter={0.9} cornerOffset={5}
+        />
+        {/* Paper grain clipped to shape */}
+        <ShapeGrain w={w} h={h} d={borderPath}
+          opacity={0.3} frequency={0.88} seed={seed}/>
+        {/* Stroke-only border on top so grain can't cover the outline */}
+        <HandDrawnBorder
+          w={w} h={h} R={R} seed={seed}
+          strokeColor={borderColor}
+          strokeWidth={1.8}
+          segmentsH={[3, 4]} segmentsV={[5, 6]}
+          curve={0.6} cornerJitter={0.9} cornerOffset={5}
+        />
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            position: 'absolute', top: 14, right: 16,
+            width: 34, height: 34, border: 'none', background: 'none',
+            cursor: 'pointer', color: 'var(--color-text)', opacity: 0.55,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 3, transition: 'opacity 150ms',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = 1)}
+          onMouseLeave={e => (e.currentTarget.style.opacity = 0.55)}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"
+            stroke="currentColor" strokeWidth="1.7" strokeLinecap="round">
+            <path d="M4,4.2 C7,6.4 11.8,7.2 13.8,13.9"/>
+            <path d="M13.9,4.1 C11.6,7 7.1,10.2 4.1,13.8"/>
+          </svg>
+        </button>
+        <div style={{ position: 'relative', zIndex: 2 }}>{children}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 Object.assign(window, {
   makePrng, wobRect, wavyLine, wavyPoints, pointsToBezier, useElementSize,
   HandDrawnBorder, HandDrawnAvatar,
-  GrainOverlay, OrganiBlob,
+  GrainOverlay, OrganiBlob, ShapeGrain,
   OrganicButton, SectionEdge, TagPill, useIsMobile,
+  HamburgerIcon, Modal,
   Avatar: (props) => React.createElement(HandDrawnAvatar, props),
 });

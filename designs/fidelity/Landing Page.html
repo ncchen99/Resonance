@@ -57,6 +57,16 @@
     ::-webkit-scrollbar-track { background: var(--color-cream-dark); }
     ::-webkit-scrollbar-thumb { background: var(--color-terracotta-light); border-radius: 99px; }
 
+    /* ── Modal entrance animations ───────────────────────────────────── */
+    @keyframes resModalFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes resModalPopIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)   scale(1); }
+    }
+
     /* ── Tweaks Panel ────────────────────────────────────────────────── */
     #tweaks-panel {
       display: none;

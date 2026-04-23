@@ -113,6 +113,8 @@ function StoryCard({ story, index = 0, isLast = false }) {
     >
       {isMobile ? (
         <>
+          {/* Paper grain across the full-bleed card body */}
+          <GrainOverlay opacity={0.16}/>
           {/* Top divider — centered on the card's top edge */}
           <svg viewBox="0 0 200 6" preserveAspectRatio="none" aria-hidden="true"
             style={{ position:'absolute', top:-3, left:0, width:'100%', height:6, overflow:'visible', pointerEvents:'none' }}>
@@ -155,7 +157,7 @@ function StoryCard({ story, index = 0, isLast = false }) {
                 <mask id={`brush-${maskId}`} maskUnits="userSpaceOnUse"
                   x={-w} y={-h} width={w * 3} height={h * 3}>
                   <circle cx={pos.x} cy={pos.y} r={hovered ? maxR : 0} fill="white"
-                    style={{ transition: 'r 720ms linear' }} />
+                    style={{ transition: 'r 460ms linear' }} />
                 </mask>
               </defs>
               <g mask={`url(#brush-${maskId})`}>
@@ -163,6 +165,9 @@ function StoryCard({ story, index = 0, isLast = false }) {
               </g>
             </svg>
           )}
+          {/* Layer 2.5 — paper grain clipped to the card shape. */}
+          <ShapeGrain w={w} h={h} d={borderPath}
+            opacity={0.3} frequency={0.85} seed={seed}/>
           {/* Layer 3 — stroke-only border on top, so neither the base fill
               nor the hover overlay can thin out the line. */}
           <HandDrawnBorder

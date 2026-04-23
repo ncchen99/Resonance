@@ -75,14 +75,21 @@ function buildHeaderPaths(seed) {
   return { maskD, strokeD, W };
 }
 
+const NAV_ITEMS = ['About', 'Explore', 'Stories'];
+
 function SiteHeader({ onNavigate }) {
   const [scrolled, setScrolled] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const isMobile = useIsMobile(720);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Close menu if viewport grows back to desktop
+  React.useEffect(() => { if (!isMobile) setMenuOpen(false); }, [isMobile]);
 
   const { maskD, strokeD, W } = React.useMemo(() => buildHeaderPaths(211), []);
 
@@ -149,29 +156,97 @@ function SiteHeader({ onNavigate }) {
           }}>Resonance</span>
         </a>
 
-        {/* Nav */}
-        <nav style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
-          {['About', 'Explore', 'Stories'].map(item => (
-            <a key={item} href="#" style={{
-              fontFamily: 'var(--font-body)', fontSize: '15px', fontWeight: '500',
-              color: 'var(--color-text)', textDecoration: 'none', opacity: 0.8,
-              transition: 'opacity 150ms',
+        {isMobile ? (
+          <button
+            aria-label="Open menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(true)}
+            style={{
+              background: 'none', border: 'none', padding: 8,
+              cursor: 'pointer', color: 'var(--color-text)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              borderRadius: 10,
             }}
-              onMouseEnter={e => e.target.style.opacity = 1}
-              onMouseLeave={e => e.target.style.opacity = 0.8}
-            >{item}</a>
-          ))}
-        </nav>
+          >
+            <HamburgerIcon size={26} />
+          </button>
+        ) : (
+          <>
+            {/* Nav */}
+            <nav style={{ display: 'flex', alignItems: 'center', gap: 36 }}>
+              {NAV_ITEMS.map(item => (
+                <a key={item} href="#" style={{
+                  fontFamily: 'var(--font-body)', fontSize: '15px', fontWeight: '500',
+                  color: 'var(--color-text)', textDecoration: 'none', opacity: 0.8,
+                  transition: 'opacity 150ms',
+                }}
+                  onMouseEnter={e => e.target.style.opacity = 1}
+                  onMouseLeave={e => e.target.style.opacity = 0.8}
+                >{item}</a>
+              ))}
+            </nav>
 
-        {/* Account */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <OrganicButton variant="outline" style={{ padding: '9px 22px', fontSize: '14px' }}>
-            Sign In
-          </OrganicButton>
-          <HandDrawnAvatar initials="YO" size={36} color="var(--color-terracotta-light)" seed={77} />
-        </div>
+            {/* Account */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <OrganicButton variant="outline" style={{ padding: '9px 22px', fontSize: '14px' }}>
+                Sign In
+              </OrganicButton>
+              <HandDrawnAvatar initials="YO" size={36} color="var(--color-terracotta-light)" seed={77} />
+            </div>
+          </>
+        )}
       </div>
+
+      <MobileNavModal open={menuOpen} onClose={() => setMenuOpen(false)} />
     </header>
+  );
+}
+
+// ── MobileNavModal ────────────────────────────────────────────────────────────
+// Hamburger-triggered menu. Renders a stacked list of nav links, a soft
+// hand-drawn divider, and the Sign In / avatar row — all inside the generic
+// `Modal` so the paper-card treatment stays consistent.
+function MobileNavModal({ open, onClose }) {
+  const dividerD = React.useMemo(() => wavyLine(260, 53, 1.3, 7), []);
+  return (
+    <Modal open={open} onClose={onClose} maxWidth={380} seed={53}
+      ariaLabel="Site navigation" padding="36px 28px 28px">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+        <OrganiBlob variant={0} fill="var(--color-terracotta)" size={26}/>
+        <span style={{
+          fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18,
+          color: 'var(--color-text)', letterSpacing: '-0.02em',
+        }}>Resonance</span>
+      </div>
+
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        {NAV_ITEMS.map(item => (
+          <a key={item} href="#" onClick={onClose} style={{
+            fontFamily: 'var(--font-heading)', fontSize: 22, fontWeight: 600,
+            color: 'var(--color-text)', textDecoration: 'none',
+            padding: '10px 4px', letterSpacing: '-0.01em',
+            transition: 'color 150ms',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--color-terracotta)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--color-text)'}
+          >{item}</a>
+        ))}
+      </nav>
+
+      <svg viewBox="0 0 260 6" preserveAspectRatio="none" aria-hidden="true"
+        style={{ display: 'block', width: '100%', height: 6, margin: '20px 0 18px', overflow: 'visible' }}>
+        <path d={dividerD} transform="translate(0,3)"
+          stroke="oklch(55% 0.05 60 / 0.35)" strokeWidth="1.1"
+          fill="none" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+      </svg>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}>
+        <OrganicButton variant="outline" style={{ padding: '10px 22px', fontSize: 14 }}>
+          Sign In
+        </OrganicButton>
+        <HandDrawnAvatar initials="YO" size={38} color="var(--color-terracotta-light)" seed={77}/>
+      </div>
+    </Modal>
   );
 }
 
@@ -198,8 +273,6 @@ function HeroSection() {
       </div>
 
       {/* Grain over entire hero */}
-      <GrainOverlay opacity={0.05} />
-
       {/* Content */}
       <div style={{
         position: 'relative', zIndex: 2,
@@ -307,8 +380,6 @@ function CardFeedSection() {
         <OrganiBlob variant={4} fill="var(--color-yellow)" size={320} />
       </div>
 
-      <GrainOverlay opacity={0.05} />
-
       <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         {/* Section header */}
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
@@ -380,8 +451,6 @@ function CTASection() {
         <OrganiBlob variant={0} fill="oklch(98% 0.01 75)" size={220}/>
       </div>
 
-      <GrainOverlay opacity={0.05}/>
-
       {/* Content — z:4, clearly above all decoration */}
       <div style={{
         position: 'relative', zIndex: 4,
@@ -432,7 +501,6 @@ function SiteFooter() {
       <SectionEdge topColor="var(--color-terracotta)" seed={233} height={90}
         amplitude={0.14} steps={14}
         stroke="oklch(20% 0.03 60 / 0.5)" strokeWidth={1.3} />
-      <GrainOverlay opacity={0.05} />
       <div style={{
         maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28,
@@ -482,4 +550,4 @@ function SiteFooter() {
   );
 }
 
-Object.assign(window, { SiteHeader, HeroSection, CardFeedSection, CTASection, SiteFooter, STORIES });
+Object.assign(window, { SiteHeader, MobileNavModal, HeroSection, CardFeedSection, CTASection, SiteFooter, STORIES });
