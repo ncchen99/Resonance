@@ -42,15 +42,22 @@
     /* ── Reset & Base ────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; overflow-x: clip; }
 
     body {
       font-family: var(--font-body);
       background: var(--color-cream);
       color: var(--color-text);
       -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: clip;
     }
+
+    /* Sections inside <main> place decorative blobs with negative offsets;
+       clip them to main's box so none of the host page shows through as a
+       white gutter on the right. */
+    main { display: block; width: 100%; max-width: 100%; overflow-x: clip; }
 
     /* ── Scrollbar ───────────────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 6px; }

@@ -4,12 +4,12 @@
 // Colored stroke matching each card's accent family
 
 const CARD_FILLS = [
-  'oklch(88% 0.07 55)',
-  'oklch(92% 0.035 290)', // lavender — lightened
-  'oklch(91% 0.045 140)', // sage — lightened
-  'oklch(90% 0.08 88)',
-  'oklch(90% 0.035 215)', // sky — noticeably lightened (was 84% / 0.06)
-  'oklch(87% 0.05 18)',
+  'oklch(90% 0.065 55)',
+  'oklch(94% 0.032 290)',
+  'oklch(93% 0.042 140)',
+  'oklch(92% 0.075 88)',
+  'oklch(92% 0.033 215)',
+  'oklch(89% 0.047 18)',
 ];
 
 const CARD_BORDERS = [
@@ -113,8 +113,11 @@ function StoryCard({ story, index = 0, isLast = false }) {
     >
       {isMobile ? (
         <>
-          {/* Paper grain across the full-bleed card body */}
-          <GrainOverlay opacity={0.16}/>
+          {/* Paper grain across the full-bleed card body. Lower opacity than
+              desktop because GrainOverlay uses `mode="multiply"`, which
+              darkens — the desktop `ShapeGrain` is additive and reads
+              lighter at the same nominal value. */}
+          <GrainOverlay opacity={0.08}/>
           {/* Top divider — centered on the card's top edge */}
           <svg viewBox="0 0 200 6" preserveAspectRatio="none" aria-hidden="true"
             style={{ position:'absolute', top:-3, left:0, width:'100%', height:6, overflow:'visible', pointerEvents:'none' }}>

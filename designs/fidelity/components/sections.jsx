@@ -210,8 +210,8 @@ function MobileNavModal({ open, onClose }) {
   const dividerD = React.useMemo(() => wavyLine(260, 53, 1.3, 7), []);
   return (
     <Modal open={open} onClose={onClose} maxWidth={380} seed={53}
-      ariaLabel="Site navigation" padding="36px 28px 28px">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+      ariaLabel="Site navigation" padding="24px 28px 28px">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, height: 34 }}>
         <OrganiBlob variant={0} fill="var(--color-terracotta)" size={26}/>
         <span style={{
           fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18,

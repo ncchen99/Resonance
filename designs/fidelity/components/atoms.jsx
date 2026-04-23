@@ -153,7 +153,7 @@ function wobRect(W, H, R, seed, mag, opts) {
 }
 
 // ── useElementSize ────────────────────────────────────────────────────────────
-function useElementSize(ref, defaultW = 160, defaultH = 48) {
+function useElementSize(ref, defaultW = 160, defaultH = 48, deps = []) {
   const [dims, setDims] = React.useState({ w: defaultW, h: defaultH });
   React.useLayoutEffect(() => {
     if (!ref.current) return;
@@ -165,7 +165,7 @@ function useElementSize(ref, defaultW = 160, defaultH = 48) {
     ro.observe(ref.current);
     update();
     return () => ro.disconnect();
-  }, []);
+  }, deps);
   return dims;
 }
 
@@ -202,7 +202,10 @@ function HandDrawnBorder({ w, h, R = 22, seed = 1, mag, fillColor, strokeColor, 
             <feColorMatrix type="matrix"
               values="0 0 0 0 0.99  0 0 0 0 0.94  0 0 0 0 0.88  0 0 0 0.09 0"
               result="warmNoise"/>
-            <feBlend in="SourceGraphic" in2="warmNoise" mode="multiply"/>
+            <feBlend in="SourceGraphic" in2="warmNoise" mode="multiply" result="blended"/>
+            {/* Clip result to SourceGraphic so feBlend's additive alpha
+                (a+b-ab) can't leak warm noise past the path outline. */}
+            <feComposite in="blended" in2="SourceGraphic" operator="in"/>
           </filter>
         </defs>
       )}
@@ -283,7 +286,7 @@ function ShapeGrain({ w, h, d, opacity = 0.2, frequency = 0.9, seed = 1, zIndex 
   if (!w || !h || !d) return null;
   return (
     <svg aria-hidden="true" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
-      style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex }}>
+      style={{ position:'absolute', top:0, left:0, pointerEvents:'none', zIndex, overflow:'visible' }}>
       <defs>
         <filter id={`sg-${id}`} x="0%" y="0%" width="100%" height="100%">
           <feTurbulence type="fractalNoise" baseFrequency={frequency} numOctaves="2"
@@ -294,8 +297,13 @@ function ShapeGrain({ w, h, d, opacity = 0.2, frequency = 0.9, seed = 1, zIndex 
           </feComponentTransfer>
           <feComposite in2="SourceGraphic" operator="in"/>
         </filter>
+        {/* Hard clip so the grain cannot leak past the shape outline even
+            when the filter region rounds outward by a fraction of a pixel. */}
+        <clipPath id={`sgc-${id}`}><path d={d}/></clipPath>
       </defs>
-      <path d={d} fill="black" filter={`url(#sg-${id})`}/>
+      <g clipPath={`url(#sgc-${id})`}>
+        <path d={d} fill="black" filter={`url(#sg-${id})`}/>
+      </g>
     </svg>
   );
 }
@@ -638,7 +646,12 @@ function Modal({
   ariaLabel = 'Dialog',
 }) {
   const ref = React.useRef(null);
-  const { w, h } = useElementSize(ref, maxWidth, 320);
+  // Start with 0×0 so the hand-drawn layers stay unrendered until the
+  // container has been measured. Prevents a flash at the default maxWidth
+  // (which overflows narrow phones) and stale height that cuts off content.
+  // Pass `open` as a dep so the ResizeObserver re-attaches when the modal
+  // mounts its content (ref.current is null on the initial closed render).
+  const { w, h } = useElementSize(ref, 0, 0, [open]);
   const R = 26;
 
   React.useEffect(() => {
@@ -667,11 +680,12 @@ function Modal({
       style={{
         position: 'fixed', inset: 0, zIndex: 1000,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 'clamp(16px, 4vw, 32px)',
+        padding: 'clamp(12px, 3vw, 32px)',
         background: 'oklch(20% 0.04 60 / 0.42)',
         backdropFilter: 'blur(4px)',
         WebkitBackdropFilter: 'blur(4px)',
         animation: 'resModalFadeIn 220ms ease',
+        overflowY: 'auto',
       }}
     >
       <div
@@ -681,6 +695,8 @@ function Modal({
           position: 'relative',
           width: '100%',
           maxWidth,
+          minWidth: 0,
+          boxSizing: 'border-box',
           padding,
           animation: 'resModalPopIn 280ms cubic-bezier(.2,.9,.3,1.05)',
         }}
@@ -710,7 +726,7 @@ function Modal({
           onClick={onClose}
           aria-label="Close"
           style={{
-            position: 'absolute', top: 14, right: 16,
+            position: 'absolute', top: 22, right: 18,
             width: 34, height: 34, border: 'none', background: 'none',
             cursor: 'pointer', color: 'var(--color-text)', opacity: 0.55,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
