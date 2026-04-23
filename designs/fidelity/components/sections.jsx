@@ -146,10 +146,7 @@ function SiteHeader({ onNavigate }) {
       }}>
         {/* Logo */}
         <a href="#" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ position: 'relative', width: 32, height: 32 }}>
-            <OrganiBlob variant={0} fill="var(--color-terracotta)" size={32}
-              style={{ position: 'absolute', inset: 0 }} />
-          </div>
+          <ResonanceIcon size={34} />
           <span style={{
             fontFamily: 'var(--font-heading)', fontWeight: '700', fontSize: '20px',
             color: 'var(--color-text)', letterSpacing: '-0.02em',
@@ -212,7 +209,7 @@ function MobileNavModal({ open, onClose }) {
     <Modal open={open} onClose={onClose} maxWidth={380} seed={53}
       ariaLabel="Site navigation" padding="24px 28px 28px">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22, height: 34 }}>
-        <OrganiBlob variant={0} fill="var(--color-terracotta)" size={26}/>
+        <ResonanceIcon size={28} />
         <span style={{
           fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18,
           color: 'var(--color-text)', letterSpacing: '-0.02em',
@@ -507,7 +504,7 @@ function SiteFooter() {
       }}>
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <OrganiBlob variant={0} fill="var(--color-terracotta)" size={24} />
+          <ResonanceIcon size={26} />
           <span style={{
             fontFamily: 'var(--font-heading)', fontWeight: '700', fontSize: '18px',
             color: 'var(--color-cream)',
