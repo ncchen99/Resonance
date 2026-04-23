@@ -258,14 +258,31 @@ function OrganiBlob({ variant=0, fill='oklch(88% 0.08 55)', size=200, style={}, 
   );
 }
 
+// ── useIsMobile ───────────────────────────────────────────────────────────────
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+    const update = () => setIsMobile(mq.matches);
+    update();
+    if (mq.addEventListener) mq.addEventListener('change', update);
+    else mq.addListener(update);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', update);
+      else mq.removeListener(update);
+    };
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // ── OrganicButton ─────────────────────────────────────────────────────────────
 const BTN_VARIANTS = {
-  primary:   { fill:'var(--color-terracotta)', text:'var(--color-cream)',       stroke:'oklch(40% 0.16 45)', stroke2:'oklch(30% 0.14 45)' },
-  secondary: { fill:'var(--color-lavender)',   text:'var(--color-cream)',       stroke:'oklch(50% 0.10 290)', stroke2:'oklch(40% 0.09 290)' },
-  ghost:     { fill:'transparent',            text:'var(--color-text)',        stroke:'oklch(44% 0.04 70)', stroke2:'oklch(34% 0.04 70)' },
-  outline:   { fill:'transparent',            text:'var(--color-terracotta)', stroke:'oklch(52% 0.13 45)', stroke2:'oklch(40% 0.11 45)' },
-  ctaLight:  { fill:'var(--color-cream)',      text:'var(--color-terracotta)', stroke:'oklch(80% 0.04 75)', stroke2:'oklch(70% 0.04 75)' },
-  ctaGhost:  { fill:'transparent',            text:'var(--color-cream)',      stroke:'oklch(88% 0.02 75 / 0.65)', stroke2:'oklch(80% 0.02 75 / 0.38)' },
+  primary:   { fill:'var(--color-terracotta)', text:'var(--color-cream)',       stroke:'oklch(40% 0.16 45)', stroke2:'oklch(30% 0.14 45)', hoverOverlay:'oklch(0% 0 0 / 0.14)' },
+  secondary: { fill:'var(--color-lavender)',   text:'var(--color-cream)',       stroke:'oklch(50% 0.10 290)', stroke2:'oklch(40% 0.09 290)', hoverOverlay:'oklch(0% 0 0 / 0.12)' },
+  ghost:     { fill:'transparent',            text:'var(--color-text)',        stroke:'oklch(44% 0.04 70)', stroke2:'oklch(34% 0.04 70)', hoverOverlay:'oklch(60% 0.10 45 / 0.14)' },
+  outline:   { fill:'transparent',            text:'var(--color-terracotta)', stroke:'oklch(52% 0.13 45)', stroke2:'oklch(40% 0.11 45)', hoverOverlay:'oklch(62% 0.14 45 / 0.14)' },
+  ctaLight:  { fill:'var(--color-cream)',      text:'var(--color-terracotta)', stroke:'oklch(80% 0.04 75)', stroke2:'oklch(70% 0.04 75)', hoverOverlay:'oklch(0% 0 0 / 0.08)' },
+  ctaGhost:  { fill:'transparent',            text:'var(--color-cream)',      stroke:'oklch(88% 0.02 75 / 0.65)', stroke2:'oklch(80% 0.02 75 / 0.38)', hoverOverlay:'oklch(96% 0.015 75 / 0.18)' },
 };
 
 const BTN_SEEDS = { primary:3, secondary:201, ghost:401, outline:601, ctaLight:801, ctaGhost:1001 };
@@ -296,11 +313,7 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
         fontFamily: 'var(--font-body)', fontSize: '15px', fontWeight: '600',
         letterSpacing: '0.02em',
         color: style.color || v.text,
-        transform: hovered ? 'scale(1.05) rotate(-0.5deg)' : 'scale(1)',
-        transition: 'transform 220ms cubic-bezier(.34,1.56,.64,1)',
-        opacity: hovered ? 0.88 : 1,
         ...style,
-        // Ensure color from style prop survives
         color: style.color || v.text,
       }}
     >
@@ -311,6 +324,24 @@ function OrganicButton({ children, variant = 'primary', onClick, style = {} }) {
         segmentsH={[3, 4]} segmentsV={1}
         curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
       />
+      {/* Brush hover overlay — diagonal sweep from TL to BR */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', inset: 0,
+        clipPath: hovered
+          ? 'polygon(0% 0%, 220% 0%, 0% 220%)'
+          : 'polygon(0% 0%, 0% 0%, 0% 0%)',
+        transition: 'clip-path 520ms cubic-bezier(.45,.05,.35,1)',
+        pointerEvents: 'none',
+      }}>
+        <HandDrawnBorder
+          w={w} h={h} R={R} seed={seed} mag={mag}
+          fillColor={v.hoverOverlay || 'oklch(0% 0 0 / 0.12)'}
+          strokeColor="transparent"
+          strokeWidth={0}
+          segmentsH={[3, 4]} segmentsV={1}
+          curve={1.9} cornerJitter={1.6} cornerOffset={Math.min(w, h) * 0.035}
+        />
+      </div>
       <span style={{ position:'relative', zIndex:1 }}>{children}</span>
     </button>
   );
@@ -363,82 +394,98 @@ function wavyLine(W, seed = 1, amp = 2, steps = 5) {
   return d;
 }
 
-// ── SectionEdge ───────────────────────────────────────────────────────────────
-// Reusable wavy edge for section-to-section transitions (and anywhere else a
-// hand-drawn horizontal boundary is wanted).
+// ── wavyPath (utility) ────────────────────────────────────────────────────────
+// Returns a seeded hand-drawn wavy polyline across width W, starting at (0, y0)
+// and ending at (W, y0). Amplitude `amp` deflects control points up/down.
+// Returns an array of [x, y] points; caller turns them into a bezier path.
+function wavyPoints(W, y0, amp, seed, steps) {
+  const rnd = makePrng(seed);
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    // Slight x-jitter keeps peaks from landing on a regular grid.
+    const x = t * W + (i > 0 && i < steps ? (rnd() - 0.5) * (W / steps) * 0.18 : 0);
+    const y = (i === 0 || i === steps) ? y0 : y0 - (rnd() - 0.5) * 2 * amp;
+    pts.push([x, y]);
+  }
+  return pts;
+}
+
+function pointsToBezier(pts) {
+  const f = n => +n.toFixed(2);
+  let out = `M ${f(pts[0][0])},${f(pts[0][1])}`;
+  for (let i = 1; i < pts.length; i++) {
+    const [x0, y0] = pts[i - 1];
+    const [x1, y1] = pts[i];
+    const midX = (x0 + x1) / 2;
+    out += ` C ${f(midX)},${f(y0)} ${f(midX)},${f(y1)} ${f(x1)},${f(y1)}`;
+  }
+  return out;
+}
+
+// ── SectionEdge (v2 — "mask from above") ─────────────────────────────────────
+// Sits at the TOP of a section. Fills the region ABOVE a seeded wavy line
+// with `topColor` (the previous section's color). Region BELOW the wave is
+// transparent so the host section's own background shows through.
 //
-// Place as a child of the section that owns this edge. The component is
-// absolutely positioned; pass position='top' or 'bottom'. It extends `height`
-// pixels OUTSIDE the parent (overlapping the adjacent section) so the parent
-// section's bg naturally covers content there with a wavy shape — this is how
-// blobs bleeding past the section get clipped by the wave instead of by a
-// straight line (requires the parent section to have overflow:visible).
+// The wavy line itself becomes the hand-drawn boundary between the two
+// sections. Because the edge is INSIDE the lower section (not overflowing
+// into the upper one), the wave never gets clipped.
 //
-// amplitude is a fraction of height — 0 is perfectly flat, 1 is as wavy as
-// possible. For a "rough straight line with character" use 0.15–0.3.
+// The host section MUST reserve `height` pixels of space above its content
+// (padding-top or a wrapper margin) so the wave area reads as empty room.
+//
+// amplitude is a fraction of height — keep small (0.12–0.2) for a calm,
+// hand-drawn straight-ish line rather than a rolling wave.
 function SectionEdge({
-  fill,
-  position = 'top',
+  topColor,
   seed = 1,
-  height = 48,
-  amplitude = 0.25,
+  height = 80,
+  amplitude = 0.15,
   steps = 14,
-  bleed = 1,
-  zIndex = 4,
+  zIndex = 1,
   style = {},
+  stroke,
+  strokeWidth = 1.2,
 }) {
   const W = 1440;
-  const d = React.useMemo(() => {
-    const rnd = makePrng(seed);
+  const { fillD, strokeD } = React.useMemo(() => {
     const amp = height * amplitude;
-    const baseY = height; // wavy line sits near the inner edge
-    const pts = [];
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const x = t * W + (i > 0 && i < steps ? (rnd() - 0.5) * (W / steps) * 0.22 : 0);
-      const y = (i === 0 || i === steps) ? baseY : baseY - (rnd() - 0.5) * 2 * amp;
-      pts.push([x, y]);
-    }
+    // baseY sits near the bottom of the reserved band so most of the room
+    // above the wave is occupied by `topColor`.
+    const baseY = height * 0.78;
+    const pts = wavyPoints(W, baseY, amp, seed, steps);
+    const strokeD = pointsToBezier(pts);
+    // Build the fill: start top-left, across top, down to wave end, wavy back.
     const f = n => +n.toFixed(2);
-    let out = `M ${f(pts[0][0])},${f(pts[0][1])}`;
-    for (let i = 1; i < pts.length; i++) {
-      const [x0, y0] = pts[i - 1];
+    const last = pts[pts.length - 1];
+    let fillD = `M 0,-1 L ${W},-1 L ${f(last[0])},${f(last[1])}`;
+    for (let i = pts.length - 2; i >= 0; i--) {
+      const [x0, y0] = pts[i + 1];
       const [x1, y1] = pts[i];
       const midX = (x0 + x1) / 2;
-      out += ` C ${f(midX)},${f(y0)} ${f(midX)},${f(y1)} ${f(x1)},${f(y1)}`;
+      fillD += ` C ${f(midX)},${f(y0)} ${f(midX)},${f(y1)} ${f(x1)},${f(y1)}`;
     }
-    // Close out the fill area below the wavy top edge.
-    out += ` L ${W},${f(height + bleed)} L 0,${f(height + bleed)} Z`;
-    return out;
-  }, [seed, height, amplitude, steps, bleed]);
-
-  const common = {
-    position: 'absolute', left: 0, right: 0,
-    height: height + bleed, pointerEvents: 'none',
-    zIndex,
-    ...style,
-  };
-  const posStyle = position === 'top'
-    ? { top: -height }
-    : { bottom: -height, transform: 'scaleY(-1)' };
+    fillD += ' Z';
+    return { fillD, strokeD };
+  }, [seed, height, amplitude, steps]);
 
   return (
-    <div style={{ ...common, ...posStyle }} aria-hidden="true">
-      <svg viewBox={`0 0 ${W} ${height + bleed}`} preserveAspectRatio="none"
-        style={{ display: 'block', width: '100%', height: '100%' }}>
-        <path d={d} fill={fill} />
+    <div aria-hidden="true" style={{
+      position: 'absolute', top: 0, left: 0, right: 0,
+      height, pointerEvents: 'none', zIndex, ...style,
+    }}>
+      <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none"
+        style={{ display: 'block', width: '100%', height: '100%', overflow: 'visible' }}>
+        <path d={fillD} fill={topColor} />
+        {stroke && (
+          <path d={strokeD} fill="none" stroke={stroke}
+            strokeWidth={strokeWidth} strokeLinecap="round"
+            vectorEffect="non-scaling-stroke" />
+        )}
       </svg>
     </div>
   );
-}
-
-// Back-compat shims so older call sites keep working.
-function HandDrawnWave({ fill, seed = 1, height = 64, flip = false }) {
-  return <SectionEdge fill={fill} seed={seed} height={height}
-    position={flip ? 'bottom' : 'top'} amplitude={0.35} steps={10} />;
-}
-function WaveDivider({ fill = 'var(--color-cream)', flip = false, seed = 3 }) {
-  return <HandDrawnWave fill={fill} seed={seed} flip={flip} />;
 }
 
 // ── TagPill (hand-drawn badge) ────────────────────────────────────────────────
@@ -479,9 +526,9 @@ function TagPill({ children, color='var(--color-yellow)', seed }) {
 }
 
 Object.assign(window, {
-  makePrng, wobRect, wavyLine, useElementSize,
+  makePrng, wobRect, wavyLine, wavyPoints, pointsToBezier, useElementSize,
   HandDrawnBorder, HandDrawnAvatar,
   GrainOverlay, OrganiBlob,
-  OrganicButton, WaveDivider, HandDrawnWave, SectionEdge, TagPill,
+  OrganicButton, SectionEdge, TagPill, useIsMobile,
   Avatar: (props) => React.createElement(HandDrawnAvatar, props),
 });

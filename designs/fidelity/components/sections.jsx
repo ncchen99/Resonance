@@ -40,9 +40,43 @@ const STORIES = [
 ];
 
 // ── SiteHeader ────────────────────────────────────────────────────────────────
+// Header bottom edge is hand-drawn. Construction:
+//   • The header reserves 68 + WAVE_H pixels of vertical space.
+//   • A background layer (cream translucent + backdrop-blur) fills that box
+//     but is CLIPPED by an SVG mask so its bottom edge follows the wavy line
+//     instead of a flat rule — the header color therefore extends all the
+//     way down to (and up to) the hand-drawn boundary.
+//   • A separate SVG draws the wavy line as a stroke on top of the bg.
+// The wave itself is deliberately subtle (low amplitude, few steps) so it
+// reads as "a pencil line someone drew with a slightly shaky hand," not a
+// flowing curve.
+const HEADER_BODY_H = 68;
+const HEADER_WAVE_H = 14;
+const HEADER_TOTAL_H = HEADER_BODY_H + HEADER_WAVE_H;
+
+function buildHeaderPaths(seed) {
+  const W = 1440;
+  const baseY = HEADER_BODY_H + HEADER_WAVE_H * 0.35; // line sits just inside the wave band
+  const amp = 1.4;  // tiny amplitude → gently shaky line, not rolling wave
+  const steps = 12; // fewer steps → fewer visible bends
+  const pts = wavyPoints(W, baseY, amp, seed, steps);
+  const strokeD = pointsToBezier(pts);
+  // Mask fill: everything above the wave (inclusive) is opaque white.
+  const f = n => +n.toFixed(2);
+  const last = pts[pts.length - 1];
+  let maskD = `M 0,0 L ${W},0 L ${f(last[0])},${f(last[1])}`;
+  for (let i = pts.length - 2; i >= 0; i--) {
+    const [x0, y0] = pts[i + 1];
+    const [x1, y1] = pts[i];
+    const midX = (x0 + x1) / 2;
+    maskD += ` C ${f(midX)},${f(y0)} ${f(midX)},${f(y1)} ${f(x1)},${f(y1)}`;
+  }
+  maskD += ' Z';
+  return { maskD, strokeD, W };
+}
+
 function SiteHeader({ onNavigate }) {
   const [scrolled, setScrolled] = React.useState(false);
-  const [menuOpen, setMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -50,18 +84,58 @@ function SiteHeader({ onNavigate }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const { maskD, strokeD, W } = React.useMemo(() => buildHeaderPaths(211), []);
+
+  // Mask data URL: the mask defines the SHAPE of the bg layer so its bottom
+  // edge follows the wavy line.
+  const maskUrl = React.useMemo(() => {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${HEADER_TOTAL_H}' preserveAspectRatio='none'><path d='${maskD}' fill='white'/></svg>`;
+    return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+  }, [maskD, W]);
+
   return (
     <header style={{
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-      background: scrolled ? 'oklch(96% 0.015 75 / 0.92)' : 'transparent',
-      backdropFilter: scrolled ? 'blur(12px)' : 'none',
-      transition: 'background 300ms ease, backdrop-filter 300ms ease',
-      padding: '0 clamp(24px, 5vw, 80px)',
+      height: HEADER_TOTAL_H,
+      pointerEvents: 'none', // re-enabled on the inner content row
     }}>
+      {/* Background layer — cream translucent, clipped by wavy-bottom mask */}
+      <div aria-hidden="true" style={{
+        position: 'absolute', inset: 0,
+        background: 'oklch(96% 0.015 75 / 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        opacity: scrolled ? 1 : 0,
+        transition: 'opacity 300ms ease',
+        WebkitMaskImage: maskUrl,
+        maskImage: maskUrl,
+        WebkitMaskSize: '100% 100%',
+        maskSize: '100% 100%',
+        WebkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat',
+      }} />
+
+      {/* Hand-drawn stroke on the wave line */}
+      <svg aria-hidden="true" viewBox={`0 0 ${W} ${HEADER_TOTAL_H}`} preserveAspectRatio="none"
+        style={{
+          position:'absolute', left:0, right:0, top:0,
+          width:'100%', height: HEADER_TOTAL_H,
+          pointerEvents:'none',
+          opacity: scrolled ? 1 : 0, transition: 'opacity 300ms ease',
+          overflow:'visible',
+        }}>
+        <path d={strokeD} fill="none"
+          stroke="oklch(55% 0.05 60 / 0.38)" strokeWidth="1.1"
+          strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+      </svg>
+
       <div style={{
+        position: 'relative',
         maxWidth: 1200, margin: '0 auto',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: 68,
+        height: HEADER_BODY_H,
+        padding: '0 clamp(24px, 5vw, 80px)',
+        pointerEvents: 'auto',
       }}>
         {/* Logo */}
         <a href="#" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -97,22 +171,6 @@ function SiteHeader({ onNavigate }) {
           <HandDrawnAvatar initials="YO" size={36} color="var(--color-terracotta-light)" seed={77} />
         </div>
       </div>
-
-      {/* Hand-drawn wavy underline — sits at the header's own bottom edge,
-          on top of the header's translucent background, so it reads as part
-          of the header rather than floating over the page body. */}
-      <div style={{
-        position:'absolute', left:0, right:0, bottom:0, height:10, pointerEvents:'none',
-        opacity: scrolled ? 1 : 0, transition: 'opacity 300ms ease',
-      }}>
-        <svg viewBox="0 0 1440 10" preserveAspectRatio="none" aria-hidden="true"
-          style={{ display:'block', width:'100%', height:10, overflow:'visible' }}>
-          <path d={wavyLine(1440, 211, 1.8, 18)}
-            transform="translate(0, 6)"
-            stroke="oklch(55% 0.05 60 / 0.32)" strokeWidth="1.3"
-            fill="none" strokeLinecap="round" />
-        </svg>
-      </div>
     </header>
   );
 }
@@ -140,7 +198,7 @@ function HeroSection() {
       </div>
 
       {/* Grain over entire hero */}
-      <GrainOverlay opacity={0.055} />
+      <GrainOverlay opacity={0.05} />
 
       {/* Content */}
       <div style={{
@@ -230,20 +288,25 @@ function CardFeedSection() {
     <section style={{
       position: 'relative',
       background: 'var(--color-cream-dark)',
-      padding: 'clamp(96px, 10vw, 140px) clamp(24px, 5vw, 80px) clamp(120px, 14vw, 180px)',
-      overflow: 'visible',
+      // Extra top padding reserves room for the hand-drawn top edge; the
+      // wave sits within this section (never overflows upward) so it always
+      // displays in full.
+      padding: 'clamp(140px, 14vw, 200px) clamp(24px, 5vw, 80px) clamp(120px, 14vw, 180px)',
+      overflow: 'hidden',
     }}>
-      {/* Wavy top edge — seals this section against whatever is above and
-          clips any blob that bled down from Hero with a hand-drawn line. */}
-      <SectionEdge fill="var(--color-cream-dark)" seed={41} height={72}
-        amplitude={0.5} steps={14} zIndex={4} />
+      {/* Hand-drawn boundary with Hero above: fill above the wave = cream
+          (Hero's color); below the wave is transparent so this section's
+          own cream-dark background shows. */}
+      <SectionEdge topColor="var(--color-cream)" seed={41} height={90}
+        amplitude={0.14} steps={14}
+        stroke="oklch(55% 0.05 60 / 0.28)" strokeWidth={1.2} />
 
-      {/* Subtle bg blob — now clipped by CTA's SectionEdge, not a hard line */}
-      <div style={{ position: 'absolute', bottom: -60, left: -40, opacity: 0.15, pointerEvents: 'none' }}>
+      {/* Subtle bg blob */}
+      <div style={{ position: 'absolute', bottom: 40, left: -60, opacity: 0.15, pointerEvents: 'none' }}>
         <OrganiBlob variant={4} fill="var(--color-yellow)" size={320} />
       </div>
 
-      <GrainOverlay opacity={0.04} extendTop={72} />
+      <GrainOverlay opacity={0.05} />
 
       <div style={{ maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 }}>
         {/* Section header */}
@@ -294,28 +357,27 @@ function CTASection() {
     <section style={{
       position: 'relative',
       background: 'var(--color-terracotta)',
-      padding: 'clamp(110px, 12vw, 170px) clamp(24px, 5vw, 80px) clamp(120px, 14vw, 180px)',
-      overflow: 'visible',
+      padding: 'clamp(150px, 15vw, 220px) clamp(24px, 5vw, 80px) clamp(120px, 14vw, 180px)',
+      overflow: 'hidden',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       textAlign: 'center',
     }}>
-      {/* Wavy top edge — clips CardFeed's bottom blob with a hand-drawn line */}
-      <SectionEdge fill="var(--color-terracotta)" seed={137} height={80}
-        amplitude={0.55} steps={13} zIndex={4} />
+      {/* Hand-drawn top boundary: fill above = cream-dark (CardFeed). */}
+      <SectionEdge topColor="var(--color-cream-dark)" seed={137} height={100}
+        amplitude={0.13} steps={14}
+        stroke="oklch(40% 0.12 45 / 0.35)" strokeWidth={1.3} />
 
-      {/* Decorative blobs — z:0, strictly behind everything */}
-      <div style={{ position:'absolute', top:-60, left:'5%', opacity:0.15, pointerEvents:'none', zIndex:0 }}>
+      {/* Decorative blobs — strictly behind everything */}
+      <div style={{ position:'absolute', top:120, left:'5%', opacity:0.15, pointerEvents:'none', zIndex:0 }}>
         <OrganiBlob variant={2} fill="oklch(98% 0.01 75)" size={280}/>
       </div>
-      <div style={{ position:'absolute', bottom:-50, right:'8%', opacity:0.12, pointerEvents:'none', zIndex:0 }}>
+      <div style={{ position:'absolute', bottom:40, right:'8%', opacity:0.12, pointerEvents:'none', zIndex:0 }}>
         <OrganiBlob variant={0} fill="oklch(98% 0.01 75)" size={220}/>
       </div>
 
-      {/* Grain — extends up over SectionEdge so the wave region picks up the
-          same texture and doesn't read as a flat color block. */}
-      <GrainOverlay opacity={0.06} extendTop={80}/>
+      <GrainOverlay opacity={0.05}/>
 
       {/* Content — z:4, clearly above all decoration */}
       <div style={{
@@ -359,13 +421,15 @@ function SiteFooter() {
   return (
     <footer style={{
       background: 'var(--color-text)',
-      padding: 'clamp(88px, 9vw, 120px) clamp(24px, 5vw, 80px) clamp(40px, 5vw, 64px)',
+      padding: 'clamp(130px, 13vw, 180px) clamp(24px, 5vw, 80px) clamp(40px, 5vw, 64px)',
       position: 'relative',
-      overflow: 'visible',
+      overflow: 'hidden',
     }}>
-      <SectionEdge fill="var(--color-text)" seed={233} height={72}
-        amplitude={0.5} steps={14} zIndex={4} />
-      <GrainOverlay opacity={0.04} extendTop={72} />
+      {/* Hand-drawn top boundary: fill above = terracotta (CTA). */}
+      <SectionEdge topColor="var(--color-terracotta)" seed={233} height={90}
+        amplitude={0.14} steps={14}
+        stroke="oklch(20% 0.03 60 / 0.5)" strokeWidth={1.3} />
+      <GrainOverlay opacity={0.05} />
       <div style={{
         maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 28,
