@@ -284,6 +284,7 @@ function HeroSection() {
 
 // ── CardFeedSection ───────────────────────────────────────────────────────────
 function CardFeedSection() {
+  const isMobile = useIsMobile();
   return (
     <section style={{
       position: 'relative',
@@ -330,14 +331,16 @@ function CardFeedSection() {
           </p>
         </div>
 
-        {/* Card Grid */}
+        {/* Card Grid — on mobile the cards become full-bleed sections
+            that butt up against each other (gap:0), so the top edge of
+            each card seals against the bottom of the previous one. */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '24px',
+          gap: isMobile ? 0 : '24px',
         }}>
           {STORIES.map((story, i) => (
-            <StoryCard key={i} story={story} index={i} />
+            <StoryCard key={i} story={story} index={i} isLast={i === STORIES.length - 1} />
           ))}
         </div>
 

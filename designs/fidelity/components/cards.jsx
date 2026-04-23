@@ -49,10 +49,12 @@ function ImagePlaceholder({ label, accentFill, index }) {
   );
 }
 
-function StoryCard({ story, index = 0 }) {
+function StoryCard({ story, index = 0, isLast = false }) {
   const [hovered, setHovered] = React.useState(false);
   const cardRef = React.useRef(null);
   const { w, h } = useElementSize(cardRef, 340, 480);
+  const isMobile = useIsMobile();
+  const maskId = React.useId().replace(/:/g, '');
 
   const accentFill = CARD_FILLS[index % CARD_FILLS.length];
   const [bc1] = CARD_BORDERS[index % CARD_BORDERS.length];
@@ -64,6 +66,37 @@ function StoryCard({ story, index = 0 }) {
   const cardInterior = `oklch(97.5% 0.012 ${hue})`;
   const cardHovered  = `oklch(95.8% 0.016 ${hue})`;
 
+  // Hand-drawn horizontal divider used on mobile (top/bottom section edges)
+  const dividerPath = React.useMemo(
+    () => wavyLine(200, seed + 17, 1.4, 7),
+    [seed]
+  );
+
+  // Wob-rect path reused by the brush hover overlay (desktop)
+  const borderPath = React.useMemo(() => {
+    if (!w || !h) return '';
+    return wobRect(w, h, R, seed, Math.min(w, h) * 0.025,
+      { segmentsH: [3, 4], segmentsV: [5, 6], curve: 0.55, cornerJitter: 0.7, cornerOffset: 4 });
+  }, [w, h, R, seed]);
+
+  // Watercolor brush: horizontal sweep with one up-down oscillation
+  // (a 90°-rotated "Z" — enters mid-left, arcs up, dives down, exits mid-right)
+  const brushPath = React.useMemo(() => {
+    if (!w || !h) return '';
+    return `M ${-w * 0.18} ${h * 0.50} `
+         + `L ${w * 0.28} ${-h * 0.22} `
+         + `L ${w * 0.60} ${h * 1.22} `
+         + `L ${w * 1.18} ${h * 0.50}`;
+  }, [w, h]);
+
+  // Stroke width roughly 1.2× card height so the brush fully covers each pass
+  const brushStrokeW = h * 1.25;
+
+  // Mobile: cards span full viewport width (bleed out of section padding)
+  // — negative margin pulls edges past the section's horizontal padding, and
+  // inner padding pushes the content back inside the viewport.
+  const mobileBleed = 'clamp(24px, 5vw, 80px)';
+
   return (
     <article
       ref={cardRef}
@@ -72,26 +105,79 @@ function StoryCard({ story, index = 0 }) {
       style={{
         position: 'relative',
         cursor: 'pointer',
-        padding: '22px',
-        transform: hovered
-          ? 'translateY(-5px) rotate(0.3deg)'
-          : 'translateY(0) rotate(0deg)',
-        transition: 'transform 230ms cubic-bezier(.34,1.4,.64,1)',
+        padding: isMobile ? `32px calc(18px + ${mobileBleed})` : '22px',
+        marginLeft: isMobile ? `calc(-1 * ${mobileBleed})` : 0,
+        marginRight: isMobile ? `calc(-1 * ${mobileBleed})` : 0,
+        background: isMobile ? cardInterior : 'transparent',
+        transition: 'background 320ms ease',
       }}
     >
-      {/*
-       * Hand-drawn border + fill: pure SVG bezier paths (wobRect).
-       * No feDisplacementMap on strokes → zero broken pixels.
-       * Chalk texture is applied to fill interior via feBlend (no displacement).
-       */}
-      <HandDrawnBorder
-        w={w} h={h} R={R} seed={seed}
-        fillColor={hovered ? cardHovered : cardInterior}
-        strokeColor={bc1}
-        chalkSeed={index}
-        segmentsH={[3, 4]} segmentsV={[5, 6]}
-        curve={0.55} cornerJitter={0.7} cornerOffset={4}
-      />
+      {isMobile ? (
+        <>
+          {/* Top divider — centered on the card's top edge */}
+          <svg viewBox="0 0 200 6" preserveAspectRatio="none" aria-hidden="true"
+            style={{ position:'absolute', top:-3, left:0, width:'100%', height:6, overflow:'visible', pointerEvents:'none' }}>
+            <path d={dividerPath} transform="translate(0,3)"
+              stroke={bc1} strokeWidth="1.4" fill="none" strokeLinecap="round"
+              vectorEffect="non-scaling-stroke" />
+          </svg>
+          {/* Bottom divider — only on the last card; otherwise the next
+              card's top divider closes the section. */}
+          {isLast && (
+            <svg viewBox="0 0 200 6" preserveAspectRatio="none" aria-hidden="true"
+              style={{ position:'absolute', bottom:-3, left:0, width:'100%', height:6, overflow:'visible', pointerEvents:'none' }}>
+              <path d={dividerPath} transform="translate(0,3)"
+                stroke={bc1} strokeWidth="1.4" fill="none" strokeLinecap="round"
+                vectorEffect="non-scaling-stroke" />
+            </svg>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Layer 1 — base fill (no stroke). Stroke is drawn as a separate
+              top layer below so the hover overlay never covers the border. */}
+          <HandDrawnBorder
+            w={w} h={h} R={R} seed={seed}
+            fillColor={cardInterior}
+            strokeColor="transparent"
+            strokeWidth={0}
+            chalkSeed={index}
+            segmentsH={[3, 4]} segmentsV={[5, 6]}
+            curve={0.55} cornerJitter={0.7} cornerOffset={4}
+          />
+          {/* Layer 2 — watercolor brush hover overlay, revealed via a
+              mask whose stroke-dashoffset animates from 1 → 0. The mask
+              path itself is a 90°-rotated Z, so the tint is painted on
+              in a continuous zig-zag sweep. */}
+          {w > 0 && h > 0 && (
+            <svg aria-hidden="true" width={w} height={h} viewBox={`0 0 ${w} ${h}`}
+              style={{ position:'absolute', top:0, left:0, overflow:'visible', pointerEvents:'none', zIndex:0 }}>
+              <defs>
+                <mask id={`brush-${maskId}`} maskUnits="userSpaceOnUse"
+                  x={-w} y={-h} width={w * 3} height={h * 3}>
+                  <path d={brushPath}
+                    stroke="white" strokeWidth={brushStrokeW}
+                    strokeLinecap="round" strokeLinejoin="round" fill="none"
+                    pathLength="1" strokeDasharray="1 1"
+                    strokeDashoffset={hovered ? 0 : 1}
+                    style={{ transition: 'stroke-dashoffset 880ms cubic-bezier(.45,.05,.35,1)' }} />
+                </mask>
+              </defs>
+              <g mask={`url(#brush-${maskId})`}>
+                <path d={borderPath} fill={cardHovered}/>
+              </g>
+            </svg>
+          )}
+          {/* Layer 3 — stroke-only border on top, so neither the base fill
+              nor the hover overlay can thin out the line. */}
+          <HandDrawnBorder
+            w={w} h={h} R={R} seed={seed}
+            strokeColor={bc1}
+            segmentsH={[3, 4]} segmentsV={[5, 6]}
+            curve={0.55} cornerJitter={0.7} cornerOffset={4}
+          />
+        </>
+      )}
 
       {/* Card content — z-index above the SVG border layer */}
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', gap: '14px' }}>
