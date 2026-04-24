@@ -36,10 +36,28 @@ main { display: block; width: 100%; max-width: 100%; overflow-x: clip; }
 }
 
 /* ── Tweaks Panel ────────────────────────────────────────────────── */
+.tweaks-toggle {
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 48px; height: 48px;
+  border-radius: 18px 22px 16px 20px;
+  background: var(--color-card-bg);
+  border: 1px solid oklch(80% 0.02 75);
+  box-shadow: 0 4px 16px oklch(20% 0.04 60 / 0.14);
+  color: var(--color-terracotta);
+  font-size: 22px; line-height: 1;
+  cursor: pointer; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.tweaks-toggle:hover {
+  transform: rotate(-8deg) scale(1.05);
+  box-shadow: 0 6px 22px oklch(20% 0.04 60 / 0.2);
+}
 #tweaks-panel {
   display: none;
   position: fixed;
-  bottom: 24px; right: 24px;
+  bottom: 84px; right: 24px;
   width: 260px;
   background: var(--color-card-bg);
   border-radius: 20px 24px 18px 22px;

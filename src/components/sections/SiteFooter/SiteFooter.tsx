@@ -1,12 +1,14 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { SectionEdge } from '@/components/atoms/SectionEdge/SectionEdge';
 import { ResonanceIcon } from '@/components/atoms/ResonanceIcon/ResonanceIcon';
 import styles from './SiteFooter.module.css';
 
-const LINKS = ['About', 'Contact', 'Privacy Policy', 'Terms of Service'];
+const LINK_KEYS = ['about', 'contact', 'privacy', 'terms'] as const;
 
 export function SiteFooter() {
+  const t = useTranslations('footer');
   return (
     <footer className={styles.footer}>
       <SectionEdge
@@ -23,19 +25,19 @@ export function SiteFooter() {
           <ResonanceIcon size={26} />
           <span className={styles.brandName}>Resonance</span>
         </div>
-        <p className={styles.tagline}>&ldquo;Let lives influence lives&rdquo;</p>
+        <p className={styles.tagline}>&ldquo;{t('tagline')}&rdquo;</p>
 
         <div className={styles.links}>
-          {LINKS.map((l) => (
-            <a key={l} href="#" className={styles.link}>
-              {l}
+          {LINK_KEYS.map((k) => (
+            <a key={k} href="#" className={styles.link}>
+              {t(k)}
             </a>
           ))}
         </div>
 
         <div className={styles.divider} />
 
-        <p className={styles.copyright}>© 2026 Resonance. All rights reserved.</p>
+        <p className={styles.copyright}>{t('copyright')}</p>
       </div>
     </footer>
   );

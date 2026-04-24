@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { OrganiBlob } from '@/components/atoms/OrganiBlob/OrganiBlob';
 import { SectionEdge } from '@/components/atoms/SectionEdge/SectionEdge';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
@@ -14,6 +15,7 @@ export interface CardFeedSectionProps {
 
 export function CardFeedSection({ stories }: CardFeedSectionProps) {
   const isMobile = useIsMobile();
+  const t = useTranslations('feed');
   return (
     <section className={styles.section}>
       <SectionEdge
@@ -32,9 +34,9 @@ export function CardFeedSection({ stories }: CardFeedSectionProps) {
 
       <div className={styles.container}>
         <div className={styles.heading}>
-          <TagPill color="var(--color-sage)">recent stories</TagPill>
-          <h2 className={styles.title}>Stories worth reading</h2>
-          <p className={styles.subtitle}>Real experiences from real people — every voice carries a world.</p>
+          <TagPill color="var(--color-sage)">{t('tag')}</TagPill>
+          <h2 className={styles.title}>{t('title')}</h2>
+          <p className={styles.subtitle}>{t('subtitle')}</p>
         </div>
 
         <div
@@ -48,7 +50,7 @@ export function CardFeedSection({ stories }: CardFeedSectionProps) {
         </div>
 
         <div className={styles.loadMore}>
-          <OrganicButton variant="outline">View All Stories</OrganicButton>
+          <OrganicButton variant="outline">{t('viewAll')}</OrganicButton>
         </div>
       </div>
     </section>

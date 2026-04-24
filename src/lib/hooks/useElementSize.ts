@@ -1,8 +1,6 @@
 'use client';
 
-import { RefObject, useLayoutEffect, useState, useEffect } from 'react';
-
-const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { RefObject, useEffect, useState } from 'react';
 
 export function useElementSize<T extends HTMLElement>(
   ref: RefObject<T | null>,
@@ -11,7 +9,7 @@ export function useElementSize<T extends HTMLElement>(
   deps: unknown[] = []
 ) {
   const [dims, setDims] = useState({ w: defaultW, h: defaultH });
-  useIsoLayoutEffect(() => {
+  useEffect(() => {
     if (!ref.current) return;
     const update = () => {
       if (ref.current) setDims({ w: ref.current.offsetWidth, h: ref.current.offsetHeight });

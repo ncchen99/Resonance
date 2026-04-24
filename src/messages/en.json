@@ -7,7 +7,10 @@
     "about": "About",
     "explore": "Explore",
     "stories": "Stories",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "languageSwitch": "中文",
+    "openMenu": "Open menu",
+    "siteNav": "Site navigation"
   },
   "hero": {
     "tag": "✦ human stories",
@@ -38,5 +41,27 @@
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
     "copyright": "© 2026 Resonance. All rights reserved."
+  },
+  "tweaks": {
+    "title": "Tweaks",
+    "open": "Open tweaks panel",
+    "close": "Close tweaks panel",
+    "accentColor": "Accent Color",
+    "accentTerracotta": "Terracotta (default)",
+    "accentSage": "Sage Green",
+    "accentLavender": "Lavender",
+    "accentYellow": "Golden Yellow",
+    "fontFamily": "Heading Font",
+    "fontDefault": "Playfair Display (default)",
+    "fontHandwritten": "Chenyuluoyan (handwritten)",
+    "cardDensity": "Card Density",
+    "densityNormal": "Normal (3-col)",
+    "densityCompact": "Compact (4-col)",
+    "densityAiry": "Airy (2-col)",
+    "grainIntensity": "Grain Intensity",
+    "grainNone": "None",
+    "grainSoft": "Soft",
+    "grainMedium": "Medium",
+    "grainHeavy": "Heavy"
   }
 }

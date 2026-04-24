@@ -4,14 +4,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-cream);
+  background: var(--color-cream) url('/cover.webp') center center / cover no-repeat;
   overflow: visible;
   padding-top: 100px;
 }
 
-.blob1 { position: absolute; top: 8%; left: -4%; opacity: 0.35; pointer-events: none; }
-.blob2 { position: absolute; bottom: 10%; right: -3%; opacity: 0.25; pointer-events: none; }
-.blob3 { position: absolute; top: 45%; right: 10%; opacity: 0.18; pointer-events: none; }
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 45% 42% at 50% 50%, oklch(99% 0.005 80 / 0.94) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 1;
+}
 
 .content {
   position: relative;

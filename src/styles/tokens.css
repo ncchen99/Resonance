@@ -1,8 +1,16 @@
 /* ── Design Tokens ───────────────────────────────────────────────── */
+@font-face {
+  font-family: 'ChenYuluoyan Thin';
+  src: url('https://cdn.jsdelivr.net/gh/Chenyu-otf/chenyuluoyan_thin/ChenYuluoyan-2.0-Thin.ttf') format('truetype');
+  font-display: swap;
+  font-weight: 100 400;
+}
+
 :root {
   /* Typography */
-  --font-heading: 'Playfair Display', Georgia, serif;
-  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-heading: 'Playfair Display', 'Noto Serif TC', Georgia, serif;
+  --font-body:    'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-handwritten: 'ChenYuluoyan Thin', 'Noto Serif TC', cursive;
 
   /* Color System — Warm Pastel Palette per DESIGN.md § 8 */
   --color-cream:            oklch(96.5% 0.015 75);

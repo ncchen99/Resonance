@@ -1,6 +1,6 @@
 'use client';
 
-import { OrganiBlob } from '@/components/atoms/OrganiBlob/OrganiBlob';
+import { useTranslations } from 'next-intl';
 import { TagPill } from '@/components/atoms/TagPill/TagPill';
 import { OrganicButton } from '@/components/atoms/OrganicButton/OrganicButton';
 import { HandDrawnAvatar } from '@/components/atoms/HandDrawnAvatar/HandDrawnAvatar';
@@ -14,27 +14,20 @@ const AVATARS: { ini: string; color: string }[] = [
 ];
 
 export function HeroSection() {
+  const t = useTranslations('hero');
   return (
     <section className={styles.hero}>
-      <div className={styles.blob1}>
-        <OrganiBlob variant={1} fill="var(--color-terracotta-light)" size={380} />
-      </div>
-      <div className={styles.blob2}>
-        <OrganiBlob variant={3} fill="var(--color-lavender)" size={300} />
-      </div>
-      <div className={styles.blob3}>
-        <OrganiBlob variant={2} fill="var(--color-sage)" size={180} />
-      </div>
+      <div className={styles.overlay} />
 
       <div className={styles.content}>
         <div className={styles.tagWrap}>
-          <TagPill color="var(--color-terracotta-light)">✦ human stories</TagPill>
+          <TagPill color="var(--color-terracotta-light)">{t('tag')}</TagPill>
         </div>
 
         <h1 className={styles.headline}>
-          Let lives{' '}
+          {t('headlinePrefix')}{' '}
           <span className={styles.accentWrap}>
-            <span className={styles.accent}>influence</span>
+            <span className={styles.accent}>{t('headlineAccent')}</span>
             <svg viewBox="0 0 200 12" className={styles.squiggle}>
               <path
                 d="M2,8 C30,2 60,12 90,6 C120,0 150,10 198,6"
@@ -46,16 +39,14 @@ export function HeroSection() {
               />
             </svg>
           </span>{' '}
-          lives
+          {t('headlineSuffix')}
         </h1>
 
-        <p className={styles.description}>
-          A space where human stories connect across the world. Read, share, and resonate with experiences that shape who we are.
-        </p>
+        <p className={styles.description}>{t('description')}</p>
 
         <div className={styles.ctaRow}>
-          <OrganicButton variant="primary">Explore Stories</OrganicButton>
-          <OrganicButton variant="ghost">Share Your Story</OrganicButton>
+          <OrganicButton variant="primary">{t('explore')}</OrganicButton>
+          <OrganicButton variant="ghost">{t('share')}</OrganicButton>
         </div>
 
         <div className={styles.proof}>
@@ -66,7 +57,7 @@ export function HeroSection() {
               </div>
             ))}
           </div>
-          <span className={styles.proofText}>Join 12,000+ storytellers worldwide</span>
+          <span className={styles.proofText}>{t('proof')}</span>
         </div>
       </div>
     </section>

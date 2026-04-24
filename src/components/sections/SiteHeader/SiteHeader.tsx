@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { ResonanceIcon } from '@/components/atoms/ResonanceIcon/ResonanceIcon';
 import { HamburgerIcon } from '@/components/atoms/HamburgerIcon/HamburgerIcon';
 import { HandDrawnAvatar } from '@/components/atoms/HandDrawnAvatar/HandDrawnAvatar';
 import { OrganicButton } from '@/components/atoms/OrganicButton/OrganicButton';
 import { useIsMobile } from '@/lib/hooks/useIsMobile';
 import { pointsToBezier, wavyPoints } from '@/lib/design/wavyPath';
+import { Link, usePathname } from '@/i18n/navigation';
 import { MobileNavModal } from './MobileNavModal';
 import styles from './SiteHeader.module.css';
 
@@ -34,12 +36,16 @@ function buildHeaderPaths(seed: number) {
   return { maskD, strokeD, W };
 }
 
-export const NAV_ITEMS = ['About', 'Explore', 'Stories'];
+export const NAV_KEYS = ['about', 'explore', 'stories'] as const;
 
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isMobile = useIsMobile(720);
+  const t = useTranslations('nav');
+  const locale = useLocale();
+  const pathname = usePathname();
+  const otherLocale = locale === 'en' ? 'zh-TW' : 'en';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -88,33 +94,51 @@ export function SiteHeader() {
       </svg>
 
       <div className={styles.row} style={{ height: HEADER_BODY_H }}>
-        <a href="#" className={styles.logo}>
+        <Link href="/" className={styles.logo}>
           <ResonanceIcon size={42} />
           <span className={styles.brand}>Resonance</span>
-        </a>
+        </Link>
 
         {isMobile ? (
-          <button
-            aria-label="Open menu"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen(true)}
-            className={styles.menuBtn}
-          >
-            <HamburgerIcon size={26} />
-          </button>
+          <div className={styles.account}>
+            <Link
+              href={pathname}
+              locale={otherLocale}
+              className={styles.navLink}
+              aria-label="Switch language"
+            >
+              {t('languageSwitch')}
+            </Link>
+            <button
+              aria-label={t('openMenu')}
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
+              className={styles.menuBtn}
+            >
+              <HamburgerIcon size={26} />
+            </button>
+          </div>
         ) : (
           <>
             <nav className={styles.nav}>
-              {NAV_ITEMS.map((item) => (
-                <a key={item} href="#" className={styles.navLink}>
-                  {item}
+              {NAV_KEYS.map((key) => (
+                <a key={key} href="#" className={styles.navLink}>
+                  {t(key)}
                 </a>
               ))}
             </nav>
 
             <div className={styles.account}>
+              <Link
+                href={pathname}
+                locale={otherLocale}
+                className={styles.navLink}
+                aria-label="Switch language"
+              >
+                {t('languageSwitch')}
+              </Link>
               <OrganicButton variant="outline" style={{ padding: '9px 22px', fontSize: '14px' }}>
-                Sign In
+                {t('signIn')}
               </OrganicButton>
               <HandDrawnAvatar initials="YO" size={36} color="var(--color-terracotta-light)" seed={77} />
             </div>

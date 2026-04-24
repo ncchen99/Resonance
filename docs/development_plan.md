@@ -1,431 +1,492 @@
 # Resonance — 開發計畫 (Development Plan)
 
-> 版本：v1.0 · 2026-04-23  
-> 技術決策：Next.js 16 (App Router) + CSS Modules + Firebase + Cloudflare R2
+> 版本：v0.2 · 2026-04-24
+> 對齊文件：[共振產品需求書 v0.1](./共振_產品需求書_v0.1.md) · [Wireframes](../designs/wireframes/00-overview.md) · [DESIGN.md](../designs/DESIGN.md)
+> 技術決策：Next.js 15 (App Router) + CSS Modules + Firebase + Cloudflare R2 + LLM API
 
 ---
 
-## 一、Tech Stack 總覽
+## 一、產品定位與本計畫範圍
+
+共振的最小單位是**卡片** (一個故事 + 一個思維)，不是文章。因此系統設計必須同時滿足：
+
+1. **寫作流 (M1, M2)** — 極簡模板 + AI 寫作夥伴 (潤稿、下標、生成標籤、翻譯)
+2. **共振流 (M4, M5)** — 以思維同頻為主的每日精選 feed + 共振標記
+3. **連結流 (M6)** — 雙向連結取代單向追蹤
+4. **身份流 (M9)** — 筆名 + 真人 (手機) 驗證混合制
+5. **卡片盒 (M7, M8)** — 個人思想地圖 + 私人卡片
+
+本開發計畫以 **MVP 範圍 (M1, M2 基礎版, M4, M5, M6, M9)** 為第一戰場，其餘依 PRD §五 的 Phase 規劃漸進展開。
+
+---
+
+## 二、Tech Stack 總覽
 
 | 層次 | 技術 | 說明 |
 |------|------|------|
-| **框架** | Next.js 16 [LTS] (App Router) | ISR / SSG / RSC 完整支援 |
-| **語言** | TypeScript | 嚴格型別，配合 DB 抽象層 |
-| **CSS** | CSS Modules + CSS Custom Properties | 零依賴，完整保留設計 fidelity |
-| **認證** | Firebase Authentication | Email / Google OAuth |
-| **資料庫** | Firebase Firestore（封裝層） | 透過 Repository Pattern 抽象化 |
-| **圖片儲存** | Cloudflare R2 | S3 相容 API，搭配 Next.js Route Handler 上傳 |
-| **國際化** | next-intl | App Router 原生整合，型別安全 |
-| **後台管理** | 🔖 待規劃（預留架構） | 可能採用獨立路由 `/admin` 或分開部署 |
+| **框架** | Next.js 15 (App Router) | RSC / ISR / Route Handlers |
+| **語言** | TypeScript 5.7 (strict) | 搭配 Repository 抽象層 |
+| **CSS** | CSS Modules + CSS Custom Properties | OKLCH、`clamp()`、動態 SVG mask，零依賴 |
+| **字體** | Playfair Display + DM Sans | 透過 `next/font` |
+| **國際化** | next-intl | `[locale]` segment，支援 `zh-TW` / `en` (日/韓/西 Phase 2) |
+| **認證** | Firebase Auth (Email + Phone OTP) | 手機驗證是真人驗證的關鍵 (M9) |
+| **資料庫** | Firebase Firestore + Repository Pattern | 未來可抽換 |
+| **媒體儲存** | Cloudflare R2 (S3 相容) | Presigned URL 直傳 |
+| **AI 服務** | OpenAI / Claude API (via server) | 潤稿、標籤、翻譯；不直接暴露 key 至 client |
+| **向量索引** | Firestore + 外部 vector store (pgvector / Pinecone, Phase 2) | 同頻匹配的思維嵌入 |
+| **排程** | Firebase Scheduled Functions / Cron | 每日 feed 生成、邀請過期、配額重置 |
+| **部署** | Vercel (app) + Firebase (backend) + R2 (assets) | — |
 
 ---
 
-## 二、資料夾結構
+## 三、資訊架構 (IA) 與路由
+
+依 wireframes `00-overview.md` 的畫面地圖：
+
+```
+/[locale]/                      ← 01 Landing (SSG, 已實作)
+/[locale]/signin                ← 08 Sign in
+/[locale]/signup                ← 08 Sign up (3-step)
+/[locale]/home                  ← 02 Resonance Feed (每日精選)
+/[locale]/card/[id]             ← 03 Card Detail
+/[locale]/write                 ← 04 新卡片
+/[locale]/write/[id]            ← 04 編輯草稿
+/[locale]/me                    ← 05 我的卡片盒 (self)
+/[locale]/u/[handle]            ← 06 他人 profile
+/[locale]/settings              ← 09 Settings
+/[locale]/messages/[threadId]   ← (Phase 2) 私訊
+
+/api/ai/polish                  ← M2 潤稿
+/api/ai/title                   ← M2 下標建議
+/api/ai/tags                    ← M2 標籤生成
+/api/ai/translate               ← M3 翻譯 (Phase 2 上線，MVP 先 stub)
+/api/ai/match                   ← M4 同頻匹配 (每日 cron)
+/api/upload                     ← R2 presigned URL
+/api/revalidate                 ← On-demand ISR
+```
+
+**全域 Shell** (wireframes `00-overview.md`)：
+- 已登入：`SiteHeader` 顯示 `共振 Feed / 我的卡片盒 / +寫卡片 / 🔔 / 頭像`
+- Mobile：nav 收進 hamburger + 右下角 floating `+寫卡片` OrganicButton
+
+---
+
+## 四、資料夾結構
 
 ```
 resonance/
 ├── src/
+│   ├── app/
+│   │   ├── [locale]/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx              ← 01 Landing (SSG, 已實作)
+│   │   │   ├── (auth)/
+│   │   │   │   ├── signin/page.tsx   ← 08
+│   │   │   │   └── signup/page.tsx   ← 08 (stepper)
+│   │   │   ├── (app)/                ← logged-in shell (共用 header)
+│   │   │   │   ├── layout.tsx
+│   │   │   │   ├── home/page.tsx     ← 02
+│   │   │   │   ├── card/[id]/page.tsx ← 03
+│   │   │   │   ├── write/
+│   │   │   │   │   ├── page.tsx      ← 04 新卡片
+│   │   │   │   │   └── [id]/page.tsx ← 04 編輯
+│   │   │   │   ├── me/page.tsx       ← 05
+│   │   │   │   ├── u/[handle]/page.tsx ← 06
+│   │   │   │   └── settings/page.tsx ← 09
+│   │   │   └── _modals/              ← Parallel Route slots for 07 invite
+│   │   └── api/
+│   │       ├── ai/
+│   │       │   ├── polish/route.ts
+│   │       │   ├── title/route.ts
+│   │       │   ├── tags/route.ts
+│   │       │   ├── translate/route.ts
+│   │       │   └── match/route.ts
+│   │       ├── upload/route.ts
+│   │       └── revalidate/route.ts
 │   │
-│   ├── app/                          ← App Router 根目錄
-│   │   ├── [locale]/                 ← i18n locale segment（en / zh-TW）
-│   │   │   ├── layout.tsx            ← 全域 layout（字體、provider 注入）
-│   │   │   ├── page.tsx              ← Landing page（靜態，SSG）
-│   │   │   │
-│   │   │   ├── explore/
-│   │   │   │   └── page.tsx          ← 探索頁（ISR，60s revalidate）
-│   │   │   │
-│   │   │   ├── featured/
-│   │   │   │   └── page.tsx          ← 推薦頁（SSG，build time）
-│   │   │   │
-│   │   │   ├── story/
-│   │   │   │   └── [slug]/
-│   │   │   │       └── page.tsx      ← 文章頁（ISR，300s revalidate）
-│   │   │   │
-│   │   │   ├── profile/
-│   │   │   │   └── [uid]/
-│   │   │   │       └── page.tsx      ← 作者頁（ISR）
-│   │   │   │
-│   │   │   └── (auth)/               ← 認證相關群組（無 layout header）
-│   │   │       ├── login/
-│   │   │       └── register/
-│   │   │
-│   │   ├── admin/                    ← 🔖 後台（待規劃，先預留）
-│   │   │   └── layout.tsx
-│   │   │
-│   │   └── api/                      ← Route Handlers（API endpoints）
-│   │       ├── revalidate/           ← On-demand ISR revalidation
-│   │       │   └── route.ts
-│   │       └── upload/               ← Cloudflare R2 預簽名 URL 生成
-│   │           └── route.ts
-│   │
-│   ├── components/                   ← 所有 UI 元件
-│   │   ├── atoms/                    ← 原子元件（最小單位，無業務邏輯）
-│   │   │   ├── HandDrawnBorder/
-│   │   │   │   └── HandDrawnBorder.tsx     ← 純 SVG，無 CSS Module
-│   │   │   ├── OrganicButton/
-│   │   │   │   ├── OrganicButton.tsx
-│   │   │   │   └── OrganicButton.module.css
-│   │   │   ├── TagPill/
-│   │   │   │   ├── TagPill.tsx
-│   │   │   │   └── TagPill.module.css
-│   │   │   ├── GrainOverlay/
-│   │   │   │   └── GrainOverlay.tsx        ← 純 SVG inline style
-│   │   │   ├── OrganiBlob/
-│   │   │   │   └── OrganiBlob.tsx          ← 純 SVG
-│   │   │   ├── HandDrawnAvatar/
-│   │   │   │   └── HandDrawnAvatar.tsx
-│   │   │   └── SectionEdge/
-│   │   │       └── SectionEdge.tsx         ← 純 SVG
-│   │   │
-│   │   ├── molecules/                ← 組合型元件
-│   │   │   ├── StoryCard/
-│   │   │   │   ├── StoryCard.tsx
-│   │   │   │   └── StoryCard.module.css
-│   │   │   ├── AuthorRow/
-│   │   │   │   ├── AuthorRow.tsx
-│   │   │   │   └── AuthorRow.module.css
-│   │   │   └── Modal/
-│   │   │       ├── Modal.tsx
-│   │   │       └── Modal.module.css
-│   │   │
-│   │   ├── sections/                 ← 頁面 section 元件
-│   │   │   ├── SiteHeader/
-│   │   │   │   ├── SiteHeader.tsx
-│   │   │   │   └── SiteHeader.module.css
-│   │   │   ├── HeroSection/
-│   │   │   ├── CardFeedSection/
-│   │   │   ├── CTASection/
-│   │   │   └── SiteFooter/
-│   │   │
-│   │   └── providers/                ← Client-side Providers
-│   │       ├── AuthProvider.tsx      ← Firebase Auth context
-│   │       └── ThemeProvider.tsx     ← Tweak / accent color context
+│   ├── components/
+│   │   ├── atoms/                    ← 已建：HandDrawnBorder, OrganicButton, OrganiBlob, ShapeGrain, TagPill, SectionEdge, HandDrawnAvatar
+│   │   │   └── HandDrawnCheckmark/   ← 新：M9 驗證勾
+│   │   ├── molecules/
+│   │   │   ├── StoryCard/            ← 已建；需擴充 variant: ghost (私人卡)、tag chip、accent hue seed
+│   │   │   ├── AuthorRow/            ← 已規劃
+│   │   │   ├── Modal/                ← 已規劃
+│   │   │   ├── CardEditor/           ← M1 思維核心 + 故事本體 + 標籤 + 媒體
+│   │   │   ├── AiAssistPanel/        ← M2 三個 action + diff view
+│   │   │   ├── ResonateButton/       ← M5 主按鈕 (含已共振態)
+│   │   │   ├── ConnectInviteModal/   ← 07 邀請 modal
+│   │   │   ├── NotificationBell/     ← 🔔 含連結邀請 / 共振 / 翻譯完成
+│   │   │   ├── TagCluster/           ← 05 依 tag 聚落
+│   │   │   └── ThoughtMap/           ← 05 Tab E (Phase 2)
+│   │   ├── sections/                 ← Landing sections (已實作)
+│   │   └── providers/
+│   │       ├── TweaksPanel.tsx       ← 已建
+│   │       ├── AuthProvider.tsx      ← Firebase Auth + user claims
+│   │       └── I18nProvider.tsx      ← next-intl client boundary
 │   │
 │   ├── lib/
-│   │   ├── design/                   ← 設計系統工具函式（pure functions）
-│   │   │   ├── wobRect.ts            ← 手繪邊框路徑生成
-│   │   │   ├── wavyPath.ts           ← Section 邊界波浪線
-│   │   │   └── prng.ts               ← Seeded PRNG
-│   │   │
-│   │   ├── db/                       ← 🏗️ 資料庫抽象層（核心）
-│   │   │   ├── types.ts              ← 共用 Entity 型別定義
-│   │   │   ├── interfaces/           ← Repository 介面（合約）
-│   │   │   │   ├── IStoryRepository.ts
+│   │   ├── design/                   ← 已建：wobRect, wavyPath, prng
+│   │   ├── db/
+│   │   │   ├── types.ts              ← Entity: Card, User, Connection, Resonance, Invite, Notification
+│   │   │   ├── interfaces/
+│   │   │   │   ├── ICardRepository.ts
 │   │   │   │   ├── IUserRepository.ts
-│   │   │   │   └── ICommentRepository.ts
-│   │   │   ├── firestore/            ← Firestore 實作
-│   │   │   │   ├── client.ts         ← Firebase App 初始化
-│   │   │   │   ├── FirestoreStoryRepository.ts
-│   │   │   │   ├── FirestoreUserRepository.ts
-│   │   │   │   └── FirestoreCommentRepository.ts
-│   │   │   └── index.ts              ← 統一匯出（工廠函式）
-│   │   │
-│   │   ├── storage/                  ← Cloudflare R2 封裝
-│   │   │   └── r2.ts
-│   │   │
-│   │   ├── auth/                     ← Firebase Auth 工具
-│   │   │   └── firebase-auth.ts
-│   │   │
-│   │   └── mock/                     ← 🧪 Mock Data（Phase 1-2 使用）
-│   │       ├── stories.ts
-│   │       ├── users.ts
-│   │       └── comments.ts
+│   │   │   │   ├── IConnectionRepository.ts
+│   │   │   │   ├── IResonanceRepository.ts
+│   │   │   │   ├── IInviteRepository.ts
+│   │   │   │   └── INotificationRepository.ts
+│   │   │   ├── firestore/            ← 各 Entity 的 Firestore 實作
+│   │   │   ├── mock/                 ← Mock 實作 (Phase 1-2)
+│   │   │   └── index.ts              ← 工廠函式 (依 NEXT_PUBLIC_USE_MOCK 切換)
+│   │   ├── ai/
+│   │   │   ├── client.ts             ← 統一 LLM client (provider-agnostic)
+│   │   │   ├── prompts/              ← 潤稿/下標/標籤/翻譯 的 system prompt
+│   │   │   ├── matching.ts           ← 嵌入 + 同頻挑選演算法
+│   │   │   └── safety.ts             ← 內容審核
+│   │   ├── storage/r2.ts             ← presigned URL 生成
+│   │   ├── auth/
+│   │   │   ├── firebase-client.ts
+│   │   │   ├── firebase-admin.ts     ← server-side claims 驗證
+│   │   │   └── guards.ts             ← RSC / Route Handler 權限 helper
+│   │   ├── quota/                    ← 連結邀請每日 3 次、feed 每日 30 張等
+│   │   └── mock/                     ← 卡片 / 使用者 / 連結 / 共振 mock data
 │   │
-│   ├── styles/                       ← 全域樣式
-│   │   ├── tokens.css                ← :root 設計 token（單一真相來源）
-│   │   └── globals.css               ← reset, scrollbar, base styles
-│   │
-│   ├── i18n/                         ← 國際化設定
-│   │   ├── routing.ts                ← next-intl routing 設定
-│   │   └── request.ts                ← Server-side locale 解析
-│   │
-│   └── messages/                     ← 翻譯字串檔
-│       ├── en.json
-│       └── zh-TW.json
+│   ├── i18n/
+│   │   ├── routing.ts
+│   │   ├── request.ts
+│   │   └── navigation.ts             ← 已建 (`next-intl` Link wrapper)
+│   ├── messages/
+│   │   ├── zh-TW.json                ← 繁中為主 (PRD §五)
+│   │   ├── en.json
+│   │   └── (ja.json / ko.json / es.json Phase 2)
+│   └── styles/
+│       ├── tokens.css                ← OKLCH tokens (已建)
+│       └── globals.css
 │
-├── middleware.ts                      ← next-intl locale redirect 中介層
-├── next.config.ts
-├── tsconfig.json
-└── package.json
+├── middleware.ts                     ← next-intl + auth guard (已登入才進 /(app))
+├── CLAUDE.md
+└── next.config.ts
 ```
 
 ---
 
-## 三、資料庫封裝架構（Repository Pattern）
+## 五、Domain Model (核心 Entity)
 
-### 設計原則
-
-```
-Application Code
-      ↓  呼叫介面，不直接呼叫 Firebase
-IStoryRepository (interface)
-      ↓  目前的實作
-FirestoreStoryRepository
-      
-  未來換 MongoDB 時：
-      ↓  只需新增實作，Application Code 不變
-MongoStoryRepository
-```
-
-### 介面定義範例
+> 所有欄位僅列關鍵；`createdAt / updatedAt` 省略。
 
 ```typescript
-// lib/db/interfaces/IStoryRepository.ts
+type Locale = 'zh-TW' | 'en' | 'ja' | 'ko' | 'es';
+type Visibility = 'public' | 'connections' | 'private';
 
-export interface Story {
+// M1 Card
+interface Card {
   id: string;
-  slug: string;
-  title: string;
-  excerpt: string;
-  content: string;
   authorId: string;
-  tags: string[];
-  coverImageUrl: string | null;
-  readTimeMinutes: number;
-  publishedAt: Date;
-  updatedAt: Date;
-  locale: 'en' | 'zh-TW';
-  featured: boolean;
+  thoughtCore: string;              // 思維核心, ≤ 60 字
+  story: string;                    // 故事本體, 300–1200 字
+  tags: string[];                   // AI + 人工
+  media?: { type: 'image' | 'video'; url: string };
+  originalLocale: Locale;
+  translations: Partial<Record<Locale, { title: string; thoughtCore: string; story: string; aiGenerated: true }>>;
+  visibility: Visibility;
+  embedding?: number[];             // M4 同頻匹配向量
+  referenceCardId?: string;         // 引用回應 (03 → 04)
+  publishedAt: Date | null;
+  // 以下欄位僅作者可讀 (Firestore security rule)
+  readCount: number;
+  resonanceCount: number;
+  inviteCount: number;
 }
 
-export interface IStoryRepository {
-  findById(id: string): Promise<Story | null>;
-  findBySlug(slug: string): Promise<Story | null>;
-  findMany(opts: {
-    limit?: number;
-    cursor?: string;
-    tag?: string;
-    locale?: string;
-  }): Promise<{ items: Story[]; nextCursor: string | null }>;
-  findFeatured(locale?: string): Promise<Story[]>;
-  create(data: Omit<Story, 'id'>): Promise<Story>;
-  update(id: string, data: Partial<Story>): Promise<Story>;
-  delete(id: string): Promise<void>;
+// M9 User
+interface User {
+  id: string;
+  handle: string;                   // 筆名 (2–20 字, 每 30 天可改)
+  bio?: string;                     // ≤ 80 字
+  region: string;                   // ISO-3166
+  primaryLocale: Locale;
+  autoTranslateTo: Locale[];
+  verified: boolean;                // 手機驗證
+  phoneHash: string;                // never exposed
+  avatarSeed: string;               // initials + accent hue
+  joinedAt: Date;
+  handleChangedAt: Date;
+}
+
+// M6 Connection (雙向, 單一 doc)
+interface Connection {
+  id: string;                        // sorted(uidA, uidB).join('_')
+  userIds: [string, string];
+  establishedAt: Date;
+  muted?: { by: string }[];
+}
+
+// M6 Invite (7 天過期, 每人每日 3 次)
+interface Invite {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  message: string;                   // 14–140 字, 必填
+  referenceCardId?: string;
+  status: 'pending' | 'accepted' | 'expired' | 'withdrawn';
+  expiresAt: Date;                   // +7d
+}
+
+// M5 Resonance (作者看不到是誰, 除非已連結)
+interface Resonance {
+  id: string;
+  cardId: string;
+  userId: string;                    // 私密, 僅 server 用
+  note?: string;                     // 「當時為什麼共振」(僅自己可見)
+}
+
+interface Notification {
+  id: string;
+  userId: string;
+  type: 'invite' | 'resonance_summary' | 'translation_done' | 'invite_expired';
+  payload: Record<string, unknown>;
+  readAt: Date | null;
 }
 ```
 
-### Firestore 實作範例
+**Firestore 安全規則重點 (MVP 必做)：**
+- `resonanceCount`, `readCount`, `inviteCount` → 只有 `authorId == request.auth.uid` 可讀
+- `Resonance` doc → 只有 `userId` 自己可讀；`cardId` 的 aggregate 由 Cloud Function 維護
+- `connections` → 僅 `userIds.hasAny([request.auth.uid])` 可讀
+- `cards.private` 只對 author，`connections` 對連結雙方，`public` 對所有已登入者
 
-```typescript
-// lib/db/firestore/FirestoreStoryRepository.ts
-import { IStoryRepository, Story } from '../interfaces/IStoryRepository';
+---
 
-export class FirestoreStoryRepository implements IStoryRepository {
-  async findBySlug(slug: string): Promise<Story | null> {
-    // ... Firestore 查詢邏輯
-  }
-  // ... 其他方法實作
-}
-```
+## 六、渲染策略
 
-### 工廠函式（統一入口）
+| 頁面 | 策略 | 說明 |
+|------|------|------|
+| `/` Landing | **SSG** | 訪客頁，build-time (已實作) |
+| `/home` 共振 Feed | **Server Component + daily cron** | AI 每日 06:00 為每位使用者預產清單，RSC 讀取。非 ISR — 每人不同 |
+| `/card/[id]` | **RSC + revalidateTag** | 公開卡片可被 cached；私人/連結卡強制 dynamic |
+| `/u/[handle]` | **RSC, dynamic** | 因包含是否已連結的條件顯示 |
+| `/me`, `/settings`, `/write` | **CSR heavy** | 完全互動；內殼是 RSC |
+| `/signin`, `/signup` | **CSR** | Firebase Auth client flow |
+
+> 原版計畫的 ISR 策略 (60s/300s) 不適用 — 因為幾乎所有登入後頁面都是**個人化**的。Landing 仍採 SSG。
+
+---
+
+## 七、Repository Pattern (維持原計畫精神)
+
+核心理念不變：**Application 只呼叫 interface，未來可抽換後端。**
 
 ```typescript
 // lib/db/index.ts
-import { FirestoreStoryRepository } from './firestore/FirestoreStoryRepository';
-import { MockStoryRepository } from './mock/MockStoryRepository'; // Phase 1-2 使用
-
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === 'true';
 
-export const storyRepo: IStoryRepository = USE_MOCK
-  ? new MockStoryRepository()
-  : new FirestoreStoryRepository();
+export const repos = {
+  card:         USE_MOCK ? new MockCardRepository()       : new FirestoreCardRepository(),
+  user:         USE_MOCK ? new MockUserRepository()       : new FirestoreUserRepository(),
+  connection:   USE_MOCK ? new MockConnectionRepository() : new FirestoreConnectionRepository(),
+  resonance:    USE_MOCK ? new MockResonanceRepository()  : new FirestoreResonanceRepository(),
+  invite:       USE_MOCK ? new MockInviteRepository()     : new FirestoreInviteRepository(),
+  notification: USE_MOCK ? new MockNotificationRepository(): new FirestoreNotificationRepository(),
+};
 ```
 
-> **好處：** 只需在 `.env.local` 切換 `NEXT_PUBLIC_USE_MOCK=true/false`，即可在 Mock Data 和 Firestore 之間切換，Application Code 完全不需修改。
-
----
-
-## 四、渲染策略規劃
-
-| 頁面 | 策略 | Revalidate | 說明 |
-|------|------|-----------|------|
-| Landing Page (`/`) | **SSG** | — | 行銷頁，Build time 生成，部署後不變 |
-| 推薦頁 (`/featured`) | **SSG** | — | 人工審核，可透過 on-demand revalidation 更新 |
-| 探索頁 (`/explore`) | **ISR** | 60s | 文章列表，允許輕微延遲 |
-| 文章頁 (`/story/[slug]`) | **ISR** | 300s | 個別文章，修改後可 on-demand 更新 |
-| 作者頁 (`/profile/[uid]`) | **ISR** | 120s | 個人資料 |
-| 登入/認證頁 | **CSR** | — | Client-only，不快取 |
-| 寫作 / 編輯頁 | **CSR** | — | 完全互動 |
-
-### ISR 實作方式
+**每個 interface 的關鍵方法** (MVP)：
 
 ```typescript
-// app/[locale]/story/[slug]/page.tsx
-
-export const revalidate = 300; // 5 分鐘
-
-export async function generateStaticParams() {
-  // Build time 預生成熱門文章的靜態頁面
-  const stories = await storyRepo.findMany({ limit: 50 });
-  return stories.items.map((s) => ({ slug: s.slug }));
+interface ICardRepository {
+  findById(id: string, viewerId: string | null): Promise<Card | null>; // 含可見性判斷
+  findDailyFeed(userId: string, date: Date): Promise<Card[]>;          // M4
+  findRelated(cardId: string, limit: number): Promise<Card[]>;         // 03 延伸
+  findByAuthor(authorId: string, tab: 'published' | 'private' | 'draft' | 'resonated'): Promise<Card[]>;
+  create(data: NewCard): Promise<Card>;
+  update(id: string, patch: Partial<Card>): Promise<Card>;
+  publish(id: string): Promise<Card>;                                  // trigger embed + translate
 }
 
-export default async function StoryPage({ params }) {
-  const story = await storyRepo.findBySlug(params.slug);
-  if (!story) notFound();
-  return <StoryPageContent story={story} />;
+interface IConnectionRepository {
+  isConnected(a: string, b: string): Promise<boolean>;
+  list(userId: string): Promise<Connection[]>;
+  sever(a: string, b: string): Promise<void>;
 }
-```
 
-### On-Demand ISR（後台編輯後立即更新）
+interface IInviteRepository {
+  send(input: NewInvite): Promise<Invite>;   // 檢查每日配額
+  accept(id: string, userId: string): Promise<Connection>;
+  expire(id: string): Promise<void>;
+  listPending(userId: string): Promise<Invite[]>;
+}
 
-```typescript
-// app/api/revalidate/route.ts
-
-import { revalidatePath, revalidateTag } from 'next/cache';
-
-export async function POST(req: Request) {
-  const { secret, slug } = await req.json();
-  if (secret !== process.env.REVALIDATE_SECRET) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  revalidatePath(`/en/story/${slug}`);
-  revalidatePath(`/zh-TW/story/${slug}`);
-  return Response.json({ revalidated: true });
+interface IResonanceRepository {
+  mark(cardId: string, userId: string, note?: string): Promise<void>;
+  unmark(cardId: string, userId: string): Promise<void>;
+  hasResonated(cardId: string, userId: string): Promise<boolean>;
+  listResonated(userId: string): Promise<Card[]>;                      // 05 Tab D
 }
 ```
 
 ---
 
-## 五、國際化（i18n）規劃
+## 八、AI 子系統 (M2, M3, M4)
 
-### 套件選擇：`next-intl`
-
-| 方案 | 優點 | 缺點 |
-|------|------|------|
-| **next-intl** ✅ | App Router 深度整合、RSC 支援、型別安全 | — |
-| next-i18next | 成熟，Page Router 時代的主流 | 對 App Router 支援較弱 |
-| i18next 手動配置 | 彈性最高 | 配置複雜 |
-
-### URL 結構
+### 8.1 共用架構
 
 ```
-/en/               ← 英文 Landing
-/zh-TW/            ← 繁中 Landing
-/en/story/[slug]
-/zh-TW/story/[slug]
+client  ──POST──►  /api/ai/*  ──►  lib/ai/client.ts  ──►  LLM Provider
+                       │                                      │
+                       ├──► 配額檢查 (free vs premium)         │
+                       ├──► 內容審核 (safety.ts)               │
+                       └──► 記錄 audit log (Firestore)         │
 ```
 
-### 翻譯字串結構
+所有 AI 呼叫**都在 server** (Route Handler)，client 只送用戶輸入 + auth token。
 
-```json
-// messages/zh-TW.json
-{
-  "nav": {
-    "about": "關於我們",
-    "explore": "探索",
-    "stories": "故事"
-  },
-  "hero": {
-    "tagline": "✦ 真實的人生故事",
-    "headline": "讓生命{accent}生命",
-    "accent": "影響",
-    "description": "一個讓世界各地的人生故事相互連結的空間。"
-  },
-  "cta": {
-    "explore": "探索故事",
-    "share": "分享你的故事"
-  }
-}
-```
+### 8.2 M2 寫作輔助 (MVP)
+
+| 端點 | Input | Output | Prompt 重點 |
+|------|-------|--------|-------------|
+| `/api/ai/polish` | `{ story: string, locale }` | `{ diff: Array<{ original, polished, kind }> }` | **保留作者語氣、節奏、用字**；只修通順 |
+| `/api/ai/title` | `{ story }` | `{ candidates: string[3] }` | 回傳 3 句候選思維核心 |
+| `/api/ai/tags` | `{ thoughtCore, story }` | `{ tags: string[3-5] }` | 偏**思維概念**，非關鍵字 (ex. `脆弱性` not `阿嬤`) |
+
+UX：潤稿使用 **diff mode，逐段 [採用] / [保留]**，不是整段蓋掉 (wireframe §M2)。
+
+### 8.3 M3 翻譯 (Phase 2)
+
+- 發布時觸發 `/api/ai/translate`，非同步 (Firebase Function) 寫回 `card.translations`
+- 完成後寫 notification `translation_done`
+- MVP **只做 zh-TW ↔ en**，其餘 Phase 2
+
+### 8.4 M4 同頻匹配
+
+**MVP 簡化版：**
+- 發布時產 embedding (OpenAI `text-embedding-3-small`)，存至 `card.embedding`
+- 每日 05:30 cron (Firebase Scheduled Function)：
+  1. 取使用者近 30 張卡的 mean embedding
+  2. 對最近 24h 公開卡 cosine similarity top-N
+  3. 加多樣性噪聲 (避免同溫層) + 去除已看過 + 去除已連結者
+  4. 寫入 `dailyFeeds/{userId}/{yyyy-mm-dd}` 共 12 張
+- 使用者點「再給我 3 張」→ 當日 +3，上限 30
+
+**Phase 2：** 換 pgvector / Pinecone，加入 reranking。
+
+### 8.5 配額 (`lib/quota/`)
+- 連結邀請：每人 3 次 / 日
+- Feed 展開：每人 30 張 / 日
+- AI 潤稿：免費 5 次 / 日，Premium 無限 (M11 vs M12 分界)
 
 ---
 
-## 六、Cloudflare R2 圖片上傳流程
+## 九、Not-Doing List (技術層面的強約束)
 
-```
-Client
-  │
-  ├─ 1. POST /api/upload  （附上 filename, contentType）
-  │
-Server (Route Handler)
-  │
-  ├─ 2. 向 R2 產生 Presigned PUT URL（有效期 5 分鐘）
-  │
-Client
-  │
-  ├─ 3. 直接 PUT 到 Presigned URL（不經過 Next.js server）
-  │
-  └─ 4. 儲存最終 R2 public URL 到 Firestore
-```
+對齊 PRD §四與 wireframes 的「Not doing」—— 這些**刻意不實作**，避免技術上意外引入：
+
+- ❌ 公開按讚數 / 粉絲數 / 瀏覽數 API (即使 server 有，也禁止暴露給 client)
+- ❌ 單向追蹤 endpoint / follow collection
+- ❌ 排序選項 (`?sort=hot|new`) — API 只接受 system-defined 每日清單
+- ❌ 公開留言 collection / schema — 回應只能是「新卡片 with `referenceCardId`」或私訊
+- ❌ 第三方 OAuth (Google/FB/X/Line) — 會破壞真人驗證獨立性 (wireframe 08)
+- ❌ 無限滾動 API — `findDailyFeed` 的 limit 是硬編碼
+- ❌ Rich text 格式 (Markdown / HTML) — `story` 欄位 plain text only
+- ❌ Follow / Follower 列表 endpoint
+- ❌ 公開分享 OG rich preview (保留複製連結)
 
 ---
 
-## 七、開發 Phase 規劃
+## 十、開發 Phase 規劃
 
-### Phase 1 — 前端基礎建設（目前進度 / 重點）
+### Phase 1 — 前端骨架 & 登入外殼 (進行中)
 
-> **目標：** 把 fidelity prototype 轉換成可維護的 Next.js 專案
+> **目標：** 訪客 landing 完成，登入後框架 + 路由跑起來，全部用 mock data。
 
-- [ ] 初始化 Next.js 15 + TypeScript 專案
-- [ ] 設定 `tokens.css`、`globals.css`（從 Landing Page.html 提取）
-- [ ] 將 `atoms.jsx` 轉換成 TypeScript 元件 + CSS Modules
-  - `HandDrawnBorder.tsx`、`OrganicButton.tsx`、`TagPill.tsx` 等
-- [ ] 將 `sections.jsx` 轉換成 TypeScript 元件 + CSS Modules
-- [ ] 設定 next-intl（路由 + `messages/` 初始翻譯）
-- [ ] 建立 Mock Data 結構（`lib/mock/`）
-- [ ] Landing page 完整上線（SSG，使用 mock data）
+- [x] Next.js 15 + TS strict + CSS Modules 專案
+- [x] `tokens.css` + `globals.css` + `TweaksPanel`
+- [x] Landing atoms (HandDrawnBorder, OrganicButton, OrganiBlob, ShapeGrain, TagPill, SectionEdge, HandDrawnAvatar)
+- [x] Landing sections (Header, Hero, CardFeed, CTA, Footer)
+- [x] next-intl routing (`zh-TW`, `en`)，Landing 文案上線
+- [ ] `HandDrawnCheckmark` atom (M9 驗證勾)
+- [ ] `(app)` route group + logged-in `SiteHeader` 變體 (含 🔔、+寫卡片)
+- [ ] Mock repos 齊備 (Card / User / Connection / Invite / Resonance)
+- [ ] `NEXT_PUBLIC_USE_MOCK=true` 一鍵切換
 
-### Phase 2 — 核心頁面開發（Mock Data 階段）
+### Phase 2 — MVP 核心畫面 (Mock Data 階段)
 
-> **目標：** 完成主要使用者動線的 UI
+> **目標：** 跑通 wireframes 02–09 的 UI，串 mock，AI 先 stub。
 
-- [ ] 探索頁（`/explore`）— 文章列表 + 篩選
-- [ ] 文章閱讀頁（`/story/[slug]`）
-- [ ] 作者個人頁（`/profile/[uid]`）
-- [ ] 推薦頁（`/featured`）— SSG
-- [ ] 登入 / 註冊頁（UI 骨架）
-- [ ] 寫作 / 編輯頁（UI 骨架）
+| # | 畫面 | 關鍵元件 | 對應 module |
+|---|------|----------|-------------|
+| 08 | Sign in / Sign up (3-step) | Stepper, OTP input, handle 可用性檢查 (mock) | M9 |
+| 02 | Resonance Feed | StoryCard grid, 「再給我 3 張」, 空狀態 | M4 |
+| 03 | Card Detail | 作者列, pull-quote, ResonateButton, 翻譯切換, 延伸卡, 作者自視摘要 | M5 |
+| 04 | Card Create / Edit | CardEditor, AiAssistPanel (stub), 字數警示, 發布範圍 | M1, M2 |
+| 05 | My Card Box | 五個 tab, TagCluster, ghost variant (私人), 時間軸 | M7, M8 |
+| 06 | Other Profile | 未連結 / 已連結兩態, ⋯ menu | M6 |
+| 07 | Connect Invite Modal | 必填一句話, 每日配額提示 | M6 |
+| 09 | Settings | 左右分欄 / Mobile accordion | 全部 |
 
-### Phase 3 — 後端接入
+里程碑：整條 user journey (login → write → publish (mock) → 出現在他人 feed (mock) → 共振 → 邀請 → 接受 → 私訊 shell) 可點通。
 
-> **目標：** 將 Mock Data 替換成真實後端
+### Phase 3 — Firebase 接入 & 真 AI
 
-- [ ] 設定 Firebase（Auth + Firestore）
-- [ ] 實作 `IStoryRepository`、`IUserRepository` 的 Firestore 版本
-- [ ] 切換 `NEXT_PUBLIC_USE_MOCK=false`
-- [ ] 設定 Cloudflare R2 + 上傳 API Route
-- [ ] 完成認證流程（Firebase Auth）
+- [ ] Firebase Auth：Email + Phone OTP 雙因素註冊 (M9)
+- [ ] Firestore schema + security rules (含 aggregate 私密化)
+- [ ] 各 Repository 的 Firestore 實作，`NEXT_PUBLIC_USE_MOCK=false`
+- [ ] `/api/upload` → R2 presigned URL
+- [ ] `/api/ai/polish | title | tags` 串真 LLM，diff-mode 打磨
+- [ ] 每日 feed cron (Scheduled Function) + embedding pipeline
+- [ ] Notification pipeline (invite / resonance daily summary / translation)
+- [ ] 配額 middleware (`lib/quota/`)
 
-### Phase 4 — 進階功能
+### Phase 4 — 翻譯、思想地圖、進階 AI (對應 PRD 第二波)
 
-- [ ] ISR On-Demand Revalidation（後台觸發）
-- [ ] SEO 優化（`metadata`、sitemap、OG tags）
-- [ ] 圖片優化（`next/image` + R2 CDN）
-- [ ] 效能測試與優化
+- [ ] M3 多語翻譯 (MVP: zh-TW ↔ en)，UI 切換與 fallback
+- [ ] 私訊 threads (MVP 版：純文字 + 引用卡，無已讀)
+- [ ] M7 思想地圖 (force-directed graph，手繪風格)
+- [ ] 向量索引遷移 (pgvector / Pinecone)
+- [ ] 反同溫層：刻意注入 n% 低相似度卡
 
-### Phase 5 — 後台管理（🔖 細節待定）
+### Phase 5 — Premium (對應 PRD 第三波)
 
-> **預留架構：** `/admin` 路由群組或獨立部署
+- [ ] 匯出 (Markdown / PDF / 個人網站)
+- [ ] 卡片盒重整 (多卡 → 長文)
+- [ ] 進階思想地圖分析
+- [ ] 付費金流 (Stripe) + subscription claims
 
-- [ ] 確認後台需求與規格
-- [ ] 可能方案：獨立 `/admin` 路由 + 角色權限控制
-- [ ] 文章審核、用戶管理、on-demand revalidation 觸發
+### Phase 6 — 後台 (Admin，獨立規劃)
 
----
-
-## 八、關鍵設計決策說明
-
-### 為什麼 CSS Modules 而非 Tailwind？
-
-你的設計中大量使用 `clamp()`、OKLCH 顏色、動態 SVG mask 等原生 CSS 特性，這些在 CSS Modules 裡是零成本的一對一遷移。詳見前次分析報告。
-
-### 為什麼 Repository Pattern？
-
-Firestore 的 SDK 和 MongoDB 的 SDK 是完全不同的介面。如果 Application Code 直接呼叫 Firebase SDK，未來換資料庫時會需要改動每一個有查詢的地方。透過 Interface 隔離，未來只需新增一個新的實作 class（`MongoStoryRepository`），然後在工廠函式切換即可。
-
-### 為什麼 next-intl？
-
-目前（2026）對 Next.js App Router 支援最完整的 i18n 套件，Server Components 可以直接呼叫 `getTranslations()`，無需額外的 Client Provider，SEO 友好。
+- [ ] `/admin` 路由 + role-based access
+- [ ] 檢舉審核、使用者管理、手動觸發 revalidation
+- [ ] 社群守則違規的 AI 預審介面
 
 ---
 
-## 九、待確認事項
+## 十一、關鍵設計決策
 
-> 請針對以下問題確認後，即可開始 Phase 1 實作
+### 11.1 為什麼不用 ISR 快取登入後頁面？
+登入後幾乎所有頁面都是**個人化** (feed 是每人不同、詳情頁可見性與 viewer 相關)。用 RSC + 細粒度 `revalidateTag` 比 ISR 更適合。Landing 仍 SSG。
 
-- [ ] **後台管理**：是否需要整合在同一個 Next.js 專案（`/admin` 路由），或是未來獨立部署？
-- [ ] **文章 slug**：由系統自動生成（基於標題），或由作者自訂？
-- [ ] **雙語文章**：同一篇文章是否有中英兩個版本（需要 `locale` 欄位），或作者選一種語言發布？
-- [ ] **推薦頁更新頻率**：每次需要人工審核後更新，或是有演算法自動選出推薦？這決定是 SSG + On-Demand ISR 還是 ISR with timer。
+### 11.2 為什麼每日 Feed 用 cron 預產？
+M4 的靈魂是「每日一批、刻意不無限滑動」(wireframe 02)，所以**產品邏輯本身就是批次**。cron 預算 embedding + top-N，讀取時 O(1)。Client 永遠看到固定的 12 張 + 最多三次加 3。
+
+### 11.3 為什麼手機驗證而非 OAuth？
+PRD M9 強調真人驗證但保護筆名。OAuth (Google/FB) 會洩漏身份並破壞「人人平等、無階級」的定位 (wireframe 08 Not doing)。手機號做最低限度的真人，且不公開。
+
+### 11.4 為什麼 Resonance 記數不給讀者看？
+PRD §四與 wireframe 02/03 明確禁止 vanity metrics。作者自己看得到 (03 作者自視摘要)，但 Firestore security rule 保證 `resonanceCount` 只有 `authorId` 可讀，從資料層杜絕「未來 UI 想加就加」。
+
+### 11.5 為什麼 AI 不直接代寫？
+M2 prompt 強調「保留作者語氣」，UI 強制 **diff mode 逐段採用**。AI 是夥伴不是代筆，從產品哲學到介面都一致。
+
+---
+
+## 十二、待確認事項
+
+> 這些問題會影響 Phase 2/3 的具體實作，請先回答：
+
+- [ ] **手機驗證成本：** 台灣預估單次 NT$1–3，若冷啟動 1 萬用戶約 NT$1–3 萬。是否先自費，或採初期邀請碼制 (PRD 未採但作為 cost control 可選)？
+- [ ] **LLM 供應商：** 主力 OpenAI 還是 Claude？潤稿對語氣保留 Claude 較佳，嵌入用 OpenAI。是否接受雙 provider？
+- [ ] **向量儲存：** MVP 先在 Firestore 放 `embedding: number[]` + server-side cosine (小規模可接受)，還是一開始就上 pgvector / Pinecone？
+- [ ] **翻譯 MVP 範圍：** 只做 zh-TW ↔ en，還是 MVP 就要日韓？影響 Phase 3 vs Phase 4 分界。
+- [ ] **`referenceCardId` 的通知機制：** 引用回應產新卡時，原作者看到的通知語氣？(影響 M5 vs M6 的心理動線)
+- [ ] **手機驗證的地區覆蓋：** 初期是否限制僅台灣 + 國際手機，日本 / 韓國的 SMS gateway 後補？
+- [ ] **內容審核：** 是否用 LLM 自動審核 + 檢舉混合？還是只靠社群檢舉？(M10)
+- [ ] **Landing CTA 行為：** 訪客點 StoryCard → `/signin?next=/card/{id}` (wireframe 01 已規劃)，確認 URL 結構。

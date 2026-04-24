@@ -1,11 +1,13 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { OrganiBlob } from '@/components/atoms/OrganiBlob/OrganiBlob';
 import { SectionEdge } from '@/components/atoms/SectionEdge/SectionEdge';
 import { OrganicButton } from '@/components/atoms/OrganicButton/OrganicButton';
 import styles from './CTASection.module.css';
 
 export function CTASection() {
+  const t = useTranslations('cta');
   return (
     <section className={styles.section}>
       <SectionEdge
@@ -26,13 +28,11 @@ export function CTASection() {
       </div>
 
       <div className={styles.content}>
-        <h2 className={styles.title}>Share your story and let the world hear your voice</h2>
-        <p className={styles.description}>
-          Every story matters. Yours could be the one that changes someone&apos;s day.
-        </p>
+        <h2 className={styles.title}>{t('title')}</h2>
+        <p className={styles.description}>{t('description')}</p>
         <div className={styles.ctaRow}>
-          <OrganicButton variant="ctaLight">Start Sharing</OrganicButton>
-          <OrganicButton variant="ctaGhost">Create a Story</OrganicButton>
+          <OrganicButton variant="ctaLight">{t('start')}</OrganicButton>
+          <OrganicButton variant="ctaGhost">{t('create')}</OrganicButton>
         </div>
       </div>
     </section>

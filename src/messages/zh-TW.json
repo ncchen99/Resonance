@@ -7,7 +7,10 @@
     "about": "關於我們",
     "explore": "探索",
     "stories": "故事",
-    "signIn": "登入"
+    "signIn": "登入",
+    "languageSwitch": "EN",
+    "openMenu": "開啟選單",
+    "siteNav": "網站導覽"
   },
   "hero": {
     "tag": "✦ 真實的人生故事",
@@ -38,5 +41,27 @@
     "privacy": "隱私政策",
     "terms": "服務條款",
     "copyright": "© 2026 Resonance 版權所有。"
+  },
+  "tweaks": {
+    "title": "微調",
+    "open": "開啟微調面板",
+    "close": "關閉微調面板",
+    "accentColor": "強調色",
+    "accentTerracotta": "赤陶色(預設)",
+    "accentSage": "鼠尾草綠",
+    "accentLavender": "薰衣草紫",
+    "accentYellow": "金黃色",
+    "fontFamily": "標題字體",
+    "fontDefault": "Playfair Display(預設)",
+    "fontHandwritten": "辰宇落雁體(手寫)",
+    "cardDensity": "卡片密度",
+    "densityNormal": "標準(3 欄)",
+    "densityCompact": "緊湊(4 欄)",
+    "densityAiry": "寬鬆(2 欄)",
+    "grainIntensity": "顆粒強度",
+    "grainNone": "無",
+    "grainSoft": "輕微",
+    "grainMedium": "中等",
+    "grainHeavy": "強烈"
   }
 }

@@ -12,10 +12,10 @@ export type OrganicButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline'
 const BTN_VARIANTS: Record<OrganicButtonVariant, {
   fill: string; text: string; stroke: string; stroke2: string; hoverOverlay: string;
 }> = {
-  primary:   { fill: 'var(--color-terracotta)', text: 'var(--color-cream)',      stroke: 'oklch(40% 0.16 45)', stroke2: 'oklch(30% 0.14 45)', hoverOverlay: 'oklch(0% 0 0 / 0.14)' },
+  primary:   { fill: 'var(--color-terracotta)', text: 'var(--color-cream)',      stroke: 'color-mix(in oklch, var(--color-terracotta), black 35%)', stroke2: 'color-mix(in oklch, var(--color-terracotta), black 50%)', hoverOverlay: 'oklch(0% 0 0 / 0.14)' },
   secondary: { fill: 'var(--color-lavender)',   text: 'var(--color-cream)',      stroke: 'oklch(50% 0.10 290)', stroke2: 'oklch(40% 0.09 290)', hoverOverlay: 'oklch(0% 0 0 / 0.12)' },
-  ghost:     { fill: 'transparent',             text: 'var(--color-text)',       stroke: 'oklch(44% 0.04 70)', stroke2: 'oklch(34% 0.04 70)', hoverOverlay: 'oklch(60% 0.10 45 / 0.14)' },
-  outline:   { fill: 'transparent',             text: 'var(--color-terracotta)', stroke: 'oklch(52% 0.13 45)', stroke2: 'oklch(40% 0.11 45)', hoverOverlay: 'oklch(62% 0.14 45 / 0.14)' },
+  ghost:     { fill: 'transparent',             text: 'var(--color-text)',       stroke: 'oklch(44% 0.04 70)', stroke2: 'oklch(34% 0.04 70)', hoverOverlay: 'color-mix(in oklch, var(--color-terracotta) 14%, transparent)' },
+  outline:   { fill: 'transparent',             text: 'var(--color-terracotta)', stroke: 'color-mix(in oklch, var(--color-terracotta), black 15%)', stroke2: 'color-mix(in oklch, var(--color-terracotta), black 35%)', hoverOverlay: 'color-mix(in oklch, var(--color-terracotta) 14%, transparent)' },
   ctaLight:  { fill: 'var(--color-cream)',      text: 'var(--color-terracotta)', stroke: 'oklch(80% 0.04 75)', stroke2: 'oklch(70% 0.04 75)', hoverOverlay: 'oklch(0% 0 0 / 0.08)' },
   ctaGhost:  { fill: 'transparent',             text: 'var(--color-cream)',      stroke: 'oklch(88% 0.02 75 / 0.65)', stroke2: 'oklch(80% 0.02 75 / 0.38)', hoverOverlay: 'oklch(96% 0.015 75 / 0.18)' },
 };
