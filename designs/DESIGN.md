@@ -1,382 +1,554 @@
-🎨 Organic Minimal UI Design System
-1. Overview
-This design system defines a hybrid visual language that combines:
-* Emotional expression through illustration (Organic Layer)
-* Functional clarity through standard UI components (Functional Layer)
-Core Philosophy
-Emotion through visuals, clarity through structure.
+# Resonance — Design System
 
-2. Design Keywords
-Use these as primary prompts or guiding principles:
-* Warm Color Palette
-* Flat Design
-* Organic Curves
-* Playful / Light Doodle Style
-* Minimal UI
-* Handcrafted Imperfection
-* Soft & Friendly Interface
+## 1. Philosophy
 
-3. Visual Layer Structure
-3.1 Layered Architecture
-[ Illustration / Organic Layer ]
-        ↓
-[ Component Layer (Button, Card, Input) ]
-        ↓
-[ Content Layer (Text, Data) ]
+**Core Philosophy:** Emotion through visuals, clarity through structure.
 
-4. Organic Visual Style (Core)
-4.1 Hand-drawn Boundaries
-Description
-* Edges are not perfectly geometric
-* Slight irregularity in curvature
-* Each corner may have different radius
-* Feels "human-made" rather than machine-perfect
-Prompt Keywords
-hand-drawn edges
-imperfect rounded corners
-organic uneven border
-slightly irregular shape
-natural curvature variation
-soft asymmetry
+This system blends two layers:
+- **Organic Layer** — illustration-like, hand-crafted imperfection (blobs, wobbled borders, grain textures, wavy dividers)
+- **Functional Layer** — clean, minimal UI structure (grid, typography hierarchy, consistent spacing)
 
-4.2 Implementation Strategies
-Preferred Methods
-1. SVG Path (Recommended)
-    * Best control over shape
-    * Can reuse templates
-    * Optimizable
-2. Clip-path (Advanced)
-    * Good for dynamic shapes
-    * Use sparingly
-3. Border-radius variation (Lightweight fallback)
-border-radius: 24px 30px 26px 20px;
+**Design Keywords:** Warm Color Palette · Flat Design · Organic Curves · Playful Doodle Style · Minimal UI · Handcrafted Imperfection · Soft & Friendly
 
-Performance Constraints
-* Limit complex shapes per screen: max 2–3
-* Avoid high node-count SVG paths
-* Use reusable shape tokens
-* Prefer static assets over dynamic generation
+**70 / 30 Rule:** 70% functional (clean, structured) · 30% organic / expressive
 
-5. Fill & Texture System
-5.1 Grain / Noise Texture
-Description
-* Subtle "grainy" or "chalk-like" texture
-* Mimics illustration brush strokes
-* Not too strong — should feel soft
-Prompt Keywords
-subtle grain texture
-fine noise overlay
-paper-like texture
-chalk brush fill
-soft illustration grain
+---
 
-5.2 Flat Rendering Style
-Principles
-* No heavy shadows
-* No skeuomorphic depth
-* Depth comes from:
-    * color variation
-    * layering
-    * spacing
-Avoid
-* strong drop shadows
-* glassmorphism
-* neumorphism
+## 2. Design Tokens (CSS Variables)
 
-5.3 Uneven Color Fill (Important)
-Description
-Simulate hand-painted feeling:
-* Slight color inconsistency
-* Brush-like variation
-* Occasional white gaps or edges
-* Non-uniform saturation
+Defined in [`src/styles/tokens.css`](../src/styles/tokens.css):
 
-Prompt Keywords (Highly Important)
-uneven color fill
-slightly inconsistent color application
-hand-painted texture
-imperfect fill edges
-subtle color variation
-organic color distribution
-soft brush strokes
-visible painting irregularities
-slight white gaps
-natural paint bleeding edges
+```css
+:root {
+  /* Typography */
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
 
-Optional Enhancement
-* Add noise overlay layer (5~10% opacity)
-* Use gradient with slight randomness
+  /* Color System — OKLCH Warm Pastel Palette */
+  --color-cream:            oklch(96.5% 0.015 75);
+  --color-cream-dark:       oklch(93%   0.018 75);
+  --color-card-bg:          oklch(97.5% 0.01  80);
 
-6. Component System
+  --color-terracotta:       oklch(62%   0.14  45);   /* primary accent */
+  --color-terracotta-light: oklch(88%   0.08  55);
 
-6.1 Organic Card
-Structure
-* Base: rectangle (functional)
-* Overlay: organic distortion
-Variants
-A. Soft Organic Card (Recommended)
-border-radius: 24px 32px 28px 20px;
-B. Blob-backed Card
-* Card is normal
-* Organic shape behind it
-C. Full Organic Shape (Advanced)
-* SVG / clip-path
-* Use sparingly
+  --color-lavender:         oklch(80%   0.07  290);
+  --color-sage:             oklch(78%   0.07  140);
+  --color-yellow:           oklch(88%   0.10  90);
+  --color-sky:              oklch(82%   0.07  220);
 
-Rules
-* Max 1 decorative element per card
-* Maintain readability
-* Padding: 20–28px
+  --color-text:             oklch(26%   0.03  60);   /* near-black warm */
+  --color-text-muted:       oklch(52%   0.04  70);
 
-6.2 Organic Button
-Concept
-Keep button recognizable, enhance with organic wrapping
+  --grain-opacity: 0.10;
+}
+```
 
-Structure
-[ Blob / Organic Background ]
-        ↓
-[ Standard Button Shape ]
-        ↓
-[ Label ]
+**Base styles** ([`src/styles/globals.css`](../src/styles/globals.css)):
+```css
+html  { scroll-behavior: smooth; overflow-x: clip; }
+body  { font-family: var(--font-body); background: var(--color-cream); color: var(--color-text); -webkit-font-smoothing: antialiased; }
 
-Properties
-* Shape: rounded-full (important for affordance)
-* High contrast color
-* Organic background offset
+/* Custom scrollbar */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-cream-dark); }
+::-webkit-scrollbar-thumb { background: var(--color-terracotta-light); border-radius: 99px; }
+```
 
-Interaction
-Instead of shadow:
-* slight scale
-* small rotation
-* soft movement
+---
 
-Prompt Keywords
-organic button with soft blob background
-playful rounded button
-minimal flat button with organic decoration
-friendly CTA button
+## 3. Typography
 
-6.3 Input Fields
-Strategy
-👉 Keep clean, minimal organic touch only
+| Role | Font | Size | Weight | Letter-spacing | Line-height |
+|---|---|---|---|---|---|
+| Hero headline | `--font-heading` | `clamp(42px, 7vw, 84px)` | 800 | `-0.03em` | 1.08 |
+| CTA section title | `--font-heading` | `clamp(30px, 4.5vw, 52px)` | 800 | `-0.025em` | 1.15 |
+| Card feed title | `--font-heading` | `clamp(28px, 4vw, 48px)` | 700 | `-0.025em` | — |
+| Story card title | `--font-heading` | `18px` | 700 | — | 1.3 |
+| Brand logo (header) | `--font-heading` | `24px` | 700 | `-0.02em` | — |
+| Brand logo (footer) | `--font-heading` | `18px` | 700 | — | — |
+| Body / description | `--font-body` | `clamp(16px, 2vw, 20px)` | 400 | — | 1.7 |
+| CTA description | `--font-body` | `17px` | 400 | — | 1.65 |
+| Card excerpt | `--font-body` | `14px` | 400 | — | 1.65 |
+| Nav links | `--font-body` | `15px` | 500 | — | — |
+| Button label | `--font-body` | `15px` | 600 | `0.02em` | — |
+| Tag pill | `--font-body` | `11px` | 600 | `0.04em` | 1.3 · uppercase |
+| Author name | `--font-body` | `13px` | 600 | — | — |
+| Read time / captions | `--font-body` | `12–13px` | 400 | — | — |
 
-Style
-* rounded corners
-* soft focus glow (not shadow)
-* no distortion
+---
 
-7. Section Layout (Wave / Organic Dividers)
-Description
-* Use wave or blob shapes to divide sections
-* Create flow instead of rigid blocks
+## 4. Color Usage Map
 
-Rules
-* Max 2–3 pe下面這份我幫你整理成可以直接丟給 AI 設計工具 / 生成 UI 的 Markdown 規格文件，同時也兼顧「設計語言 + 技術實現 + prompt 描述」。
+| Element | Color Value |
+|---|---|
+| Page background | `var(--color-cream)` |
+| Card feed background | `var(--color-cream-dark)` |
+| CTA section background | `var(--color-terracotta)` |
+| Footer background | `var(--color-text)` |
+| Primary text | `var(--color-text)` |
+| Muted text | `var(--color-text-muted)` |
+| Accent / highlight word | `var(--color-terracotta)` |
+| Header bg (scrolled) | `oklch(96% 0.015 75 / 0.92)` + `backdrop-filter: blur(12px)` |
+| Footer tagline | `oklch(85% 0.015 75 / 0.5)` |
+| Footer links | `oklch(85% 0.015 75 / 0.55)` → hover `oklch(85% 0.015 75 / 0.9)` |
+| Footer divider | `oklch(85% 0.015 75 / 0.1)` |
+| Footer copyright | `oklch(85% 0.015 75 / 0.3)` |
+| CTA description text | `oklch(96% 0.015 75 / 0.8)` |
 
-🎨 Organic Minimal UI Design System
-1. Overview
-This design system defines a hybrid visual language that combines:
-* Emotional expression through illustration (Organic Layer)
-* Functional clarity through standard UI components (Functional Layer)
-Core Philosophy
-Emotion through visuals, clarity through structure.
+---
 
-2. Design Keywords
-Use these as primary prompts or guiding principles:
-* Warm Color Palette
-* Flat Design
-* Organic Curves
-* Playful / Light Doodle Style
-* Minimal UI
-* Handcrafted Imperfection
-* Soft & Friendly Interface
+## 5. Component Atoms
 
-3. Visual Layer Structure
-3.1 Layered Architecture
-[ Illustration / Organic Layer ]
-        ↓
-[ Component Layer (Button, Card, Input) ]
-        ↓
-[ Content Layer (Text, Data) ]
+### 5.1 `OrganicButton`
 
-4. Organic Visual Style (Core)
-4.1 Hand-drawn Boundaries
-Description
-* Edges are not perfectly geometric
-* Slight irregularity in curvature
-* Each corner may have different radius
-* Feels "human-made" rather than machine-perfect
-Prompt Keywords
-hand-drawn edges
-imperfect rounded corners
-organic uneven border
-slightly irregular shape
-natural curvature variation
-soft asymmetry
+**File:** [`src/components/atoms/OrganicButton/OrganicButton.tsx`](../src/components/atoms/OrganicButton/OrganicButton.tsx)
 
-4.2 Implementation Strategies
-Preferred Methods
-1. SVG Path (Recommended)
-    * Best control over shape
-    * Can reuse templates
-    * Optimizable
-2. Clip-path (Advanced)
-    * Good for dynamic shapes
-    * Use sparingly
-3. Border-radius variation (Lightweight fallback)
-border-radius: 24px 30px 26px 20px;
+Renders a button with a wobbled SVG border via `HandDrawnBorder`, a grain overlay, and a radial hover reveal.
 
-Performance Constraints
-* Limit complex shapes per screen: max 2–3
-* Avoid high node-count SVG paths
-* Use reusable shape tokens
-* Prefer static assets over dynamic generation
+**CSS base** ([`OrganicButton.module.css`](../src/components/atoms/OrganicButton/OrganicButton.module.css)):
+```css
+padding: 14px 32px;
+font-size: 15px;  font-weight: 600;  letter-spacing: 0.02em;
+```
 
-5. Fill & Texture System
-5.1 Grain / Noise Texture
-Description
-* Subtle "grainy" or "chalk-like" texture
-* Mimics illustration brush strokes
-* Not too strong — should feel soft
-Prompt Keywords
-subtle grain texture
-fine noise overlay
-paper-like texture
-chalk brush fill
-soft illustration grain
+**wobRect parameters:**
+```
+segmentsH: [3, 4]   segmentsV: 1
+curve: 1.9          cornerJitter: 1.6
+cornerOffset: Math.min(w, h) * 0.035
+mag: Math.min(w, h) * 0.05
+R: height / 2   (pill shape)
+```
 
-5.2 Flat Rendering Style
-Principles
-* No heavy shadows
-* No skeuomorphic depth
-* Depth comes from:
-    * color variation
-    * layering
-    * spacing
-Avoid
-* strong drop shadows
-* glassmorphism
-* neumorphism
+**ShapeGrain on fill:** `opacity: 0.38`, `frequency: 1.1`
 
-5.3 Uneven Color Fill (Important)
-Description
-Simulate hand-painted feeling:
-* Slight color inconsistency
-* Brush-like variation
-* Occasional white gaps or edges
-* Non-uniform saturation
+**Hover reveal:** radial mask expanding from cursor, `transition: r 340ms linear`
 
-Prompt Keywords (Highly Important)
-uneven color fill
-slightly inconsistent color application
-hand-painted texture
-imperfect fill edges
-subtle color variation
-organic color distribution
-soft brush strokes
-visible painting irregularities
-slight white gaps
-natural paint bleeding edges
+**Variant tokens:**
 
-Optional Enhancement
-* Add noise overlay layer (5~10% opacity)
-* Use gradient with slight randomness
+| Variant | fill | text | stroke | stroke2 | hoverOverlay |
+|---|---|---|---|---|---|
+| `primary` | `var(--color-terracotta)` | `var(--color-cream)` | `oklch(40% 0.16 45)` | `oklch(30% 0.14 45)` | `oklch(0% 0 0 / 0.14)` |
+| `secondary` | `var(--color-lavender)` | `var(--color-cream)` | `oklch(50% 0.10 290)` | `oklch(40% 0.09 290)` | `oklch(0% 0 0 / 0.12)` |
+| `ghost` | `transparent` | `var(--color-text)` | `oklch(44% 0.04 70)` | `oklch(34% 0.04 70)` | `oklch(60% 0.10 45 / 0.14)` |
+| `outline` | `transparent` | `var(--color-terracotta)` | `oklch(52% 0.13 45)` | `oklch(40% 0.11 45)` | `oklch(62% 0.14 45 / 0.14)` |
+| `ctaLight` | `var(--color-cream)` | `var(--color-terracotta)` | `oklch(80% 0.04 75)` | `oklch(70% 0.04 75)` | `oklch(0% 0 0 / 0.08)` |
+| `ctaGhost` | `transparent` | `var(--color-cream)` | `oklch(88% 0.02 75 / 0.65)` | `oklch(80% 0.02 75 / 0.38)` | `oklch(96% 0.015 75 / 0.18)` |
 
-6. Component System
+**Seeds per variant:** primary=3, secondary=201, ghost=401, outline=601, ctaLight=801, ctaGhost=1001
 
-6.1 Organic Card
-Structure
-* Base: rectangle (functional)
-* Overlay: organic distortion
-Variants
-A. Soft Organic Card (Recommended)
-border-radius: 24px 32px 28px 20px;
-B. Blob-backed Card
-* Card is normal
-* Organic shape behind it
-C. Full Organic Shape (Advanced)
-* SVG / clip-path
-* Use sparingly
+---
 
-Rules
-* Max 1 decorative element per card
-* Maintain readability
-* Padding: 20–28px
+### 5.2 `HandDrawnBorder`
 
-6.2 Organic Button
-Concept
-Keep button recognizable, enhance with organic wrapping
+**File:** [`src/components/atoms/HandDrawnBorder/HandDrawnBorder.tsx`](../src/components/atoms/HandDrawnBorder/HandDrawnBorder.tsx)
 
-Structure
-[ Blob / Organic Background ]
-        ↓
-[ Standard Button Shape ]
-        ↓
-[ Label ]
+Renders an absolutely-positioned SVG with a wobbled rectangle path. Used by buttons and cards.
 
-Properties
-* Shape: rounded-full (important for affordance)
-* High contrast color
-* Organic background offset
+**Props:**
+```
+w, h          — element dimensions (from useElementSize)
+R             — corner radius (default: 22)
+seed          — shape seed (integer)
+mag           — wobble magnitude (default: Math.min(w,h) * 0.025)
+fillColor     — SVG path fill
+strokeColor   — SVG path stroke
+strokeWidth   — default 2.5
+segmentsH     — horizontal segments: number or [min, max]
+segmentsV     — vertical segments: number or [min, max]
+curve         — bezier handle strength
+cornerJitter  — corner offset randomness multiplier
+cornerOffset  — base corner nudge in px
+chalkSeed     — if set, applies warm-noise chalk SVG filter
+```
 
-Interaction
-Instead of shadow:
-* slight scale
-* small rotation
-* soft movement
+**Chalk filter** (applied when `chalkSeed` is set):
+```
+feTurbulence baseFrequency="~0.5–0.6 / ~0.38–0.45" numOctaves=4
+feColorMatrix values="0 0 0 0 0.99  0 0 0 0 0.94  0 0 0 0 0.88  0 0 0 0.09 0"
+feBlend mode="multiply"
+feComposite operator="in"
+```
 
-Prompt Keywords
-organic button with soft blob background
-playful rounded button
-minimal flat button with organic decoration
-friendly CTA button
+---
 
-6.3 Input Fields
-Strategy
-👉 Keep clean, minimal organic touch only
+### 5.3 `StoryCard`
 
-Style
-* rounded corners
-* soft focus glow (not shadow)
-* no distortion
+**File:** [`src/components/molecules/StoryCard/StoryCard.tsx`](../src/components/molecules/StoryCard/StoryCard.tsx)
 
-7. Section Layout (Wave / Organic Dividers)
-Description
-* Use wave or blob shapes to divide sections
-* Create flow instead of rigid blocks
+**6-color rotation** (index mod 6):
 
-Rules
-* Max 2–3 per page
-* Avoid overuse
+| # | fill (image bg) | border stroke 1 | border stroke 2 | hue |
+|---|---|---|---|---|
+| 0 | `oklch(90% 0.065 55)` | `oklch(52% 0.13 55)` | `oklch(38% 0.11 55)` | 55 |
+| 1 | `oklch(94% 0.032 290)` | `oklch(54% 0.10 290)` | `oklch(42% 0.09 290)` | 290 |
+| 2 | `oklch(93% 0.042 140)` | `oklch(50% 0.12 140)` | `oklch(38% 0.11 140)` | 140 |
+| 3 | `oklch(92% 0.075 88)` | `oklch(58% 0.14 88)` | `oklch(44% 0.12 88)` | 88 |
+| 4 | `oklch(92% 0.033 215)` | `oklch(50% 0.10 215)` | `oklch(38% 0.09 215)` | 215 |
+| 5 | `oklch(89% 0.047 18)` | `oklch(52% 0.09 18)` | `oklch(40% 0.08 18)` | 18 |
 
-Prompt Keywords
-wave section divider
-organic layout flow
-soft curved section transition
-fluid layout shapes
+**Card interior colors (derived from hue):**
+```
+normal:  oklch(97.5% 0.012 {hue})
+hovered: oklch(92.5% 0.024 {hue})
+```
 
-8. Color System
-Palette Direction
-* Warm tones
-* Pastel / soft saturation
+**wobRect parameters (desktop border):**
+```
+R: 22   seed: index * 77 + 13
+segmentsH: [3,4]   segmentsV: [5,6]
+curve: 0.55   cornerJitter: 0.7   cornerOffset: 4
+mag: Math.min(w, h) * 0.025
+```
 
-Example Range
-* Beige / Cream
-* Soft Yellow
-* Light Orange
-* Muted Purple
-* Soft Blue
+**ShapeGrain on desktop card:** `opacity: 0.3`, `frequency: 0.85`
 
-Keywords
-warm pastel palette
-soft neutral colors
-earth tone UI
-friendly color scheme
+**Chalk effect:** `chalkSeed={index}` passed to `HandDrawnBorder`
 
-9. Design Balance Rule
-70 / 30 Rule
-* 70% Functional UI (clean, structured)
-* 30% Organic / expressive visuals
+**Hover reveal:** radial mask expanding from cursor, `transition: r 460ms linear`
 
-10. Anti-Patterns (Avoid)
-❌ Overusing organic shapes❌ Making buttons unrecognizable❌ Too much noise texture❌ Heavy shadows / realism❌ Full illustration replacing UI
+**Image placeholder:** 16% × 62% aspect ratio area; diagonal stripe pattern `strokeOpacity: 0.28`, `strokeWidth: 1.5`; `GrainOverlay opacity: 0.055`
+
+**Wavy separator line:**
+```
+wavyLine(200, seed + 91, amplitude=1.2, steps=6)
+stroke: oklch(55% 0.04 {hue} / 0.4)   strokeWidth: 1.1
+```
+
+**Mobile mode** (≤720px):
+```
+background: cardInterior (full-width)
+padding: 32px calc(18px + clamp(24px, 5vw, 80px))
+margin: 0 calc(-1 * clamp(24px, 5vw, 80px))   (full-bleed)
+GrainOverlay opacity: 0.08
+wavy divider between cards: strokeWidth 1.4
+```
+
+**CSS** ([`StoryCard.module.css`](../src/components/molecules/StoryCard/StoryCard.module.css)):
+```css
+.card        { transition: background 320ms ease; }
+.imagePlaceholder { border-radius: 14px 18px 12px 16px; padding-bottom: 62%; }
+.title       { font-size: 18px; font-weight: 700; line-height: 1.3; }
+.excerpt     { font-size: 14px; line-height: 1.65; }
+.authorName  { font-size: 13px; font-weight: 600; }
+.readTime    { font-size: 12px; }
+.content     { gap: 14px; }
+.authorRow   { gap: 10px; padding-top: 8px; }
+arrow icon   { opacity: hovered ? 0.7 : 0.28; transition: opacity 180ms; }
+```
+
+---
+
+### 5.4 `TagPill`
+
+**File:** [`src/components/atoms/TagPill/TagPill.tsx`](../src/components/atoms/TagPill/TagPill.tsx)
+
+Renders with `HandDrawnBorder` and `ShapeGrain`. Background color passed from parent.
+
+**CSS** ([`TagPill.module.css`](../src/components/atoms/TagPill/TagPill.module.css)):
+```css
+padding: 4px 14px;
+font-size: 11px;  font-weight: 600;  letter-spacing: 0.04em;
+text-transform: uppercase;  line-height: 1.3;
+color: var(--color-text);
+```
+
+---
+
+### 5.5 `GrainOverlay`
+
+**File:** [`src/components/atoms/GrainOverlay/GrainOverlay.tsx`](../src/components/atoms/GrainOverlay/GrainOverlay.tsx)
+
+Full-area SVG grain overlay, absolutely positioned, `pointerEvents: none`, `zIndex: 10`.
+
+```
+feTurbulence: type="fractalNoise" baseFrequency="0.72" numOctaves=4 stitchTiles="stitch"
+feColorMatrix: type="saturate" values="0"
+feBlend: mode="multiply"
+```
+
+Default `opacity: 0.06`. Used at:
+- Global page grain: `--grain-opacity: 0.10`
+- Card image placeholder: `opacity: 0.055`
+- Mobile card background: `opacity: 0.08`
+
+---
+
+### 5.6 `OrganiBlob`
+
+**File:** [`src/components/atoms/OrganiBlob/OrganiBlob.tsx`](../src/components/atoms/OrganiBlob/OrganiBlob.tsx)
+
+Decorative SVG blob shapes (5 variants), placed absolutely, `pointerEvents: none`.
+
+**Default fill:** `oklch(88% 0.08 55)` (terracotta-light tint)
+
+**Grain filter on blobs:**
+```
+feTurbulence baseFrequency="0.9" numOctaves=2 stitchTiles="stitch"
+feColorMatrix saturate=0
+feFuncA slope={grain}   (default grain=0.4)
+feComposite operator="in"
+```
+
+**Placement per section:**
+
+| Section | Blob | position | opacity | size |
+|---|---|---|---|---|
+| Hero | blob1 | `top: 8%, left: -4%` | 0.35 | — |
+| Hero | blob2 | `bottom: 10%, right: -3%` | 0.25 | — |
+| Hero | blob3 | `top: 45%, right: 10%` | 0.18 | — |
+| CardFeed | blob | `bottom: 40px, left: -60px` | 0.15 | — |
+| CTA | blobTop | `top: 120px, left: 5%` | 0.15 | — |
+| CTA | blobBottom | `bottom: 40px, right: 8%` | 0.12 | — |
+
+---
+
+### 5.7 `SectionEdge`
+
+**File:** [`src/components/atoms/SectionEdge/SectionEdge.tsx`](../src/components/atoms/SectionEdge/SectionEdge.tsx)
+
+Renders a wavy top-edge transition between sections. SVG `viewBox="0 0 1440 {height}"` `preserveAspectRatio="none"`.
+
+**Default parameters:**
+```
+height: 80px   amplitude: 0.15   steps: 14   strokeWidth: 1.2
+baseY: height * 0.78
+amp: height * amplitude
+```
+
+**Mobile** (≤640px): `steps = max(4, round(steps * 0.45))`, `seed += 9173`
+
+**Section-edge usage:**
+
+| Between | topColor | stroke | seed |
+|---|---|---|---|
+| Hero → CardFeed | `var(--color-cream-dark)` | `oklch(55% 0.05 60 / 0.38)` (approx) | varies |
+| CardFeed → CTA | `var(--color-terracotta)` | — | varies |
+| CTA → Footer | `var(--color-text)` | — | varies |
+
+---
+
+### 5.8 `HandDrawnAvatar`
+
+**File:** [`src/components/atoms/HandDrawnAvatar/HandDrawnAvatar.tsx`](../src/components/atoms/HandDrawnAvatar/HandDrawnAvatar.tsx)
+
+Circular avatar with initials, wobbled border via `HandDrawnBorder`.
+
+**Default size:** `30px`  
+**Color:** card `accentFill`  
+**Seed:** `charCode(initials[0]) * 13`
+
+---
+
+## 6. Section Layouts
+
+### 6.1 SiteHeader
+
+**File:** [`src/components/sections/SiteHeader/SiteHeader.module.css`](../src/components/sections/SiteHeader/SiteHeader.module.css)
+
+```css
+.header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; pointer-events: none; }
+
+.bg {
+  background: oklch(96% 0.015 75 / 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: opacity 300ms ease;
+}
+
+.row {
+  padding-left:  max(clamp(24px, 5vw, 80px), calc((100% - 1200px) / 2));
+  padding-right: max(clamp(24px, 5vw, 80px), calc((100% - 1200px) / 2));
+  pointer-events: auto;
+}
+
+.brand  { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.nav    { gap: 36px; }
+.navLink { font-size: 15px; font-weight: 500; opacity: 0.8; transition: opacity 150ms; }
+.navLink:hover { opacity: 1; }
+.account { gap: 12px; }
+```
+
+**Wave stroke:** SVG wave `amplitude: 1.4`, `steps: 12`; stroke `oklch(55% 0.05 60 / 0.38)`
+
+**Header body height:** 68px · Wave height: 14px · Total: 82px
+
+---
+
+### 6.2 HeroSection
+
+**File:** [`src/components/sections/HeroSection/HeroSection.module.css`](../src/components/sections/HeroSection/HeroSection.module.css)
+
+```css
+.hero {
+  min-height: 100vh;
+  background: var(--color-cream);
+  padding-top: 100px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.content { max-width: 720px; padding: 0 clamp(24px, 5vw, 80px); text-align: center; }
+
+.headline { font-size: clamp(42px, 7vw, 84px); font-weight: 800; line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 24px; }
+.accent   { color: var(--color-terracotta); }
+.squiggle { bottom: -6px; left: 0; width: 100%; height: 12px; }  /* wavy underline */
+
+.description { font-size: clamp(16px, 2vw, 20px); line-height: 1.7; max-width: 520px; margin: 0 auto 40px; }
+
+.ctaRow { gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+.proof  { margin-top: 56px; gap: 16px; }
+.proofText { font-size: 13px; font-style: italic; }
+```
+
+---
+
+### 6.3 CardFeedSection
+
+**File:** [`src/components/sections/CardFeedSection/CardFeedSection.module.css`](../src/components/sections/CardFeedSection/CardFeedSection.module.css)
+
+```css
+.section {
+  background: var(--color-cream-dark);
+  padding: clamp(140px, 14vw, 200px) clamp(24px, 5vw, 80px) clamp(120px, 14vw, 180px);
+}
+
+.container { max-width: 1200px; margin: 0 auto; }
+
+.title    { font-size: clamp(28px, 4vw, 48px); font-weight: 700; letter-spacing: -0.025em; margin: 16px 0 12px; }
+.subtitle { font-size: 16px; max-width: 420px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+/* Desktop gap: 24px between cards (inline padding on each card = 22px) */
+/* Mobile: gap 0, full-bleed cards */
+
+.loadMore { text-align: center; margin-top: 48px; }
+.heading  { text-align: center; margin-bottom: 56px; }
+```
+
+---
+
+### 6.4 CTASection
+
+**File:** [`src/components/sections/CTASection/CTASection.module.css`](../src/components/sections/CTASection/CTASection.module.css)
+
+```css
+.section {
+  background: var(--color-terracotta);
+  padding: clamp(150px, 15vw, 220px) clamp(24px, 5vw, 80px) clamp(120px, 14vw, 180px);
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+}
+
+.content { max-width: 600px; }
+
+.title       { font-size: clamp(30px, 4.5vw, 52px); font-weight: 800; color: var(--color-cream); line-height: 1.15; letter-spacing: -0.025em; margin: 0 0 16px; }
+.description { font-size: 17px; color: oklch(96% 0.015 75 / 0.8); line-height: 1.65; margin: 0 0 40px; }
+.ctaRow      { gap: 14px; justify-content: center; flex-wrap: wrap; }
+```
+
+---
+
+### 6.5 SiteFooter
+
+**File:** [`src/components/sections/SiteFooter/SiteFooter.module.css`](../src/components/sections/SiteFooter/SiteFooter.module.css)
+
+```css
+.footer {
+  background: var(--color-text);
+  padding: clamp(130px, 13vw, 180px) clamp(24px, 5vw, 80px) clamp(40px, 5vw, 64px);
+}
+
+.container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 28px; }
+
+.brandName  { font-size: 18px; font-weight: 700; color: var(--color-cream); }
+.tagline    { font-size: 13px; font-style: italic; color: oklch(85% 0.015 75 / 0.5); }
+.links      { gap: 28px; flex-wrap: wrap; justify-content: center; }
+.link       { font-size: 13px; color: oklch(85% 0.015 75 / 0.55); transition: color 150ms; }
+.link:hover { color: oklch(85% 0.015 75 / 0.9); }
+.divider    { height: 1px; background: oklch(85% 0.015 75 / 0.1); }
+.copyright  { font-size: 12px; color: oklch(85% 0.015 75 / 0.3); }
+```
+
+---
+
+## 7. Animations & Transitions
+
+**Modal entrance** (defined in `globals.css`):
+```css
+@keyframes resModalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes resModalPopIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+```
+
+**Interaction transitions:**
+
+| Element | Property | Duration | Easing |
+|---|---|---|---|
+| Header background | opacity | 300ms | ease |
+| Nav link | opacity | 150ms | — |
+| Button hover reveal | SVG circle `r` | 340ms | linear |
+| Card hover reveal | SVG circle `r` | 460ms | linear |
+| Card background | background | 320ms | ease |
+| Arrow icon | opacity | 180ms | — |
+| Footer link | color | 150ms | — |
+
+---
+
+## 8. Wavy Path System
+
+**Used by:** section edges, card separators, mobile card dividers, header wave
+
+**`wavyLine(width, seed, amplitude, steps)`** — produces a horizontal wavy SVG path.
+
+**`wavyPoints` + `pointsToBezier`** — used by `SectionEdge` for filled + stroked waves.
+
+**Parameters in use:**
+
+| Usage | amplitude | steps | strokeWidth |
+|---|---|---|---|
+| Header wave | 1.4 | 12 | 1.3 |
+| SectionEdge default | 0.15 × height | 14 | 1.2 |
+| Card separator | 1.2 | 6 | 1.1 |
+| Mobile card divider | 1.4 | 7 | 1.4 |
+
+---
+
+## 9. Z-Index Stack
+
+| Layer | z-index |
+|---|---|
+| Header | 100 (fixed) |
+| Tweaks panel | 9999 |
+| Section content | 1–4 |
+| Decorative blobs | 0 |
+| Grain overlays | 10 |
+
+---
+
+## 10. Responsive Breakpoints
+
+| Breakpoint | Used for |
+|---|---|
+| ≤720px | Navigation collapse (mobile nav modal) |
+| ≤640px | SectionEdge step reduction (45% of desktop steps) |
+| — | StoryCard mobile mode (useIsMobile default ~720px) |
+
+**Container max-width:** `1200px`  
+**Section horizontal padding:** `clamp(24px, 5vw, 80px)` (or dynamic header formula)  
+**Card grid:** `repeat(auto-fill, minmax(300px, 1fr))`
+
+---
+
+## 11. Anti-Patterns
+
+- Overusing organic shapes — max 2–3 per page
+- Making buttons unrecognizable (maintain pill shape affordance)
+- Heavy noise texture — grain should feel soft, not dominant
+- Strong drop shadows, glassmorphism, neumorphism
+- Full illustration replacing functional UI components
