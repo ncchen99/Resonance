@@ -33,12 +33,11 @@
 
 .row {
   position: relative;
-  max-width: 1200px;
-  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 clamp(24px, 5vw, 80px);
+  padding-left: max(clamp(24px, 5vw, 80px), calc((100% - 1200px) / 2));
+  padding-right: max(clamp(24px, 5vw, 80px), calc((100% - 1200px) / 2));
   pointer-events: auto;
 }
 
