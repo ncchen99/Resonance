@@ -1,0 +1,91 @@
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-cream);
+  overflow: visible;
+  padding-top: 100px;
+}
+
+.blob1 { position: absolute; top: 8%; left: -4%; opacity: 0.35; pointer-events: none; }
+.blob2 { position: absolute; bottom: 10%; right: -3%; opacity: 0.25; pointer-events: none; }
+.blob3 { position: absolute; top: 45%; right: 10%; opacity: 0.18; pointer-events: none; }
+
+.content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  max-width: 720px;
+  padding: 0 clamp(24px, 5vw, 80px);
+}
+
+.tagWrap {
+  margin-bottom: 20px;
+}
+
+.headline {
+  font-family: var(--font-heading);
+  font-size: clamp(42px, 7vw, 84px);
+  font-weight: 800;
+  color: var(--color-text);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin: 0 0 24px;
+  text-wrap: balance;
+}
+
+.accentWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.accent {
+  color: var(--color-terracotta);
+}
+
+.squiggle {
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  width: 100%;
+  height: 12px;
+  overflow: visible;
+}
+
+.description {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.7;
+  color: var(--color-text-muted);
+  margin: 0 auto 40px;
+  max-width: 520px;
+  text-wrap: pretty;
+}
+
+.ctaRow {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.proof {
+  margin-top: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.avatarStack {
+  display: flex;
+}
+
+.proofText {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}

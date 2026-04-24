@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "title": "Resonance — Let lives influence lives",
+    "description": "A space where human stories connect across the world."
+  },
+  "nav": {
+    "about": "About",
+    "explore": "Explore",
+    "stories": "Stories",
+    "signIn": "Sign In"
+  },
+  "hero": {
+    "tag": "✦ human stories",
+    "headlinePrefix": "Let lives",
+    "headlineAccent": "influence",
+    "headlineSuffix": "lives",
+    "description": "A space where human stories connect across the world. Read, share, and resonate with experiences that shape who we are.",
+    "explore": "Explore Stories",
+    "share": "Share Your Story",
+    "proof": "Join 12,000+ storytellers worldwide"
+  },
+  "feed": {
+    "tag": "recent stories",
+    "title": "Stories worth reading",
+    "subtitle": "Real experiences from real people — every voice carries a world.",
+    "viewAll": "View All Stories"
+  },
+  "cta": {
+    "title": "Share your story and let the world hear your voice",
+    "description": "Every story matters. Yours could be the one that changes someone's day.",
+    "start": "Start Sharing",
+    "create": "Create a Story"
+  },
+  "footer": {
+    "tagline": "Let lives influence lives",
+    "about": "About",
+    "contact": "Contact",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "copyright": "© 2026 Resonance. All rights reserved."
+  }
+}

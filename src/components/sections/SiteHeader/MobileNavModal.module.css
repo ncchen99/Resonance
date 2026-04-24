@@ -1,0 +1,51 @@
+.brandRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+  height: 34px;
+}
+
+.brandText {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navLink {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+  padding: 10px 4px;
+  letter-spacing: -0.01em;
+  transition: color 150ms;
+}
+
+.navLink:hover {
+  color: var(--color-terracotta);
+}
+
+.divider {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: 20px 0 18px;
+  overflow: visible;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}

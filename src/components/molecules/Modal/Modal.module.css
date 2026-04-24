@@ -1,0 +1,49 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 3vw, 32px);
+  background: oklch(20% 0.04 60 / 0.42);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: resModalFadeIn 220ms ease;
+  overflow-y: auto;
+}
+
+.dialog {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  animation: resModalPopIn 280ms cubic-bezier(.2, .9, .3, 1.05);
+}
+
+.closeBtn {
+  position: absolute;
+  top: 22px;
+  right: 18px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text);
+  opacity: 0.55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  transition: opacity 150ms;
+}
+
+.closeBtn:hover {
+  opacity: 1;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+}

@@ -1,0 +1,72 @@
+@import './tokens.css';
+
+/* ── Reset & Base ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; overflow-x: clip; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--color-cream);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+/* Sections inside <main> place decorative blobs with negative offsets;
+   clip them to main's box so none of the host page shows through as a
+   white gutter on the right. */
+main { display: block; width: 100%; max-width: 100%; overflow-x: clip; }
+
+/* ── Scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-cream-dark); }
+::-webkit-scrollbar-thumb { background: var(--color-terracotta-light); border-radius: 99px; }
+
+/* ── Modal entrance animations ───────────────────────────────────── */
+@keyframes resModalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes resModalPopIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
+/* ── Tweaks Panel ────────────────────────────────────────────────── */
+#tweaks-panel {
+  display: none;
+  position: fixed;
+  bottom: 24px; right: 24px;
+  width: 260px;
+  background: var(--color-card-bg);
+  border-radius: 20px 24px 18px 22px;
+  padding: 20px;
+  z-index: 9999;
+  box-shadow: 0 4px 24px oklch(20% 0.04 60 / 0.12);
+  border: 1px solid oklch(80% 0.02 75);
+  font-family: var(--font-body);
+}
+#tweaks-panel.open { display: block; }
+.tweak-label {
+  font-size: 12px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--color-text-muted);
+  display: block; margin-bottom: 6px; margin-top: 14px;
+}
+.tweak-label:first-child { margin-top: 0; }
+.tweak-select, .tweak-range {
+  width: 100%;
+  font-family: var(--font-body); font-size: 13px;
+  border: 1px solid oklch(80% 0.02 75);
+  border-radius: 10px; padding: 7px 10px;
+  background: var(--color-cream); color: var(--color-text);
+  appearance: none; cursor: pointer;
+}
+.tweak-range { padding: 4px 0; border: none; background: none; accent-color: var(--color-terracotta); }
+.tweaks-title {
+  font-family: var(--font-heading); font-size: 15px; font-weight: 700;
+  color: var(--color-text); margin-bottom: 14px;
+  padding-bottom: 10px; border-bottom: 1px solid oklch(80% 0.02 75);
+}

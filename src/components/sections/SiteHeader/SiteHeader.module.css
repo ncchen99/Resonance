@@ -1,0 +1,96 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.bg {
+  position: absolute;
+  inset: 0;
+  background: oklch(96% 0.015 75 / 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: opacity 300ms ease;
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.waveStroke {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  pointer-events: none;
+  transition: opacity 300ms ease;
+  overflow: visible;
+}
+
+.row {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(24px, 5vw, 80px);
+  pointer-events: auto;
+}
+
+.logo {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+.menuBtn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+}
+
+.navLink {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 150ms;
+}
+
+.navLink:hover {
+  opacity: 1;
+}
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
