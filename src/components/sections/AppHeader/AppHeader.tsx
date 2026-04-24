@@ -1,0 +1,171 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { ResonanceIcon } from '@/components/atoms/ResonanceIcon/ResonanceIcon';
+import { HamburgerIcon } from '@/components/atoms/HamburgerIcon/HamburgerIcon';
+import { HandDrawnAvatar } from '@/components/atoms/HandDrawnAvatar/HandDrawnAvatar';
+import { OrganicButton } from '@/components/atoms/OrganicButton/OrganicButton';
+import { useIsMobile } from '@/lib/hooks/useIsMobile';
+import { pointsToBezier, wavyPoints } from '@/lib/design/wavyPath';
+import { Link, usePathname } from '@/i18n/navigation';
+import { NotificationBell } from './NotificationBell';
+import { AppMobileNavModal } from './AppMobileNavModal';
+import styles from './AppHeader.module.css';
+
+const HEADER_BODY_H = 68;
+const HEADER_WAVE_H = 14;
+const HEADER_TOTAL_H = HEADER_BODY_H + HEADER_WAVE_H;
+
+function buildHeaderPaths(seed: number) {
+  const W = 1440;
+  const baseY = HEADER_BODY_H + HEADER_WAVE_H * 0.35;
+  const amp = 1.4;
+  const steps = 12;
+  const pts = wavyPoints(W, baseY, amp, seed, steps);
+  const strokeD = pointsToBezier(pts);
+  const f = (n: number) => +n.toFixed(2);
+  const last = pts[pts.length - 1];
+  let maskD = `M 0,0 L ${W},0 L ${f(last[0])},${f(last[1])}`;
+  for (let i = pts.length - 2; i >= 0; i--) {
+    const [x0, y0] = pts[i + 1];
+    const [x1, y1] = pts[i];
+    const midX = (x0 + x1) / 2;
+    maskD += ` C ${f(midX)},${f(y0)} ${f(midX)},${f(y1)} ${f(x1)},${f(y1)}`;
+  }
+  maskD += ' Z';
+  return { maskD, strokeD, W };
+}
+
+export interface AppHeaderProps {
+  user: { initials: string; handle: string; accentColor: string };
+  unreadCount: number;
+  activeKey?: 'home' | 'me' | 'write';
+}
+
+export function AppHeader({ user, unreadCount, activeKey }: AppHeaderProps) {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isMobile = useIsMobile(720);
+  const t = useTranslations('app.nav');
+  const locale = useLocale();
+  const pathname = usePathname();
+  const otherLocale = locale === 'en' ? 'zh-TW' : 'en';
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) setMenuOpen(false);
+  }, [isMobile]);
+
+  const { maskD, strokeD, W } = useMemo(() => buildHeaderPaths(211), []);
+  const maskUrl = useMemo(() => {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${HEADER_TOTAL_H}' preserveAspectRatio='none'><path d='${maskD}' fill='white'/></svg>`;
+    return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+  }, [maskD, W]);
+
+  const navItems: { key: 'home' | 'me' | 'write'; href: '/home' | '/me' | '/write' }[] = [
+    { key: 'home', href: '/home' },
+    { key: 'me', href: '/me' },
+  ];
+
+  return (
+    <header className={styles.header} style={{ height: HEADER_TOTAL_H }}>
+      <div
+        aria-hidden="true"
+        className={styles.bg}
+        style={{ opacity: scrolled ? 1 : 0.82, WebkitMaskImage: maskUrl, maskImage: maskUrl }}
+      />
+      <svg
+        aria-hidden="true"
+        viewBox={`0 0 ${W} ${HEADER_TOTAL_H}`}
+        preserveAspectRatio="none"
+        className={styles.waveStroke}
+        style={{ height: HEADER_TOTAL_H, opacity: scrolled ? 1 : 0.5 }}
+      >
+        <path
+          d={strokeD}
+          fill="none"
+          stroke="oklch(55% 0.05 60 / 0.38)"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+
+      <div className={styles.row} style={{ height: HEADER_BODY_H }}>
+        <Link href="/home" className={styles.logo}>
+          <ResonanceIcon size={38} />
+          <span className={styles.brand}>Resonance</span>
+        </Link>
+
+        {isMobile ? (
+          <div className={styles.account}>
+            <NotificationBell count={unreadCount} />
+            <button
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen(true)}
+              className={styles.menuBtn}
+            >
+              <HamburgerIcon size={26} />
+            </button>
+          </div>
+        ) : (
+          <>
+            <nav className={styles.nav}>
+              {navItems.map(({ key, href }) => (
+                <Link
+                  key={key}
+                  href={href}
+                  className={styles.navLink}
+                  data-active={activeKey === key || undefined}
+                >
+                  {t(key)}
+                </Link>
+              ))}
+            </nav>
+
+            <div className={styles.account}>
+              <Link href="/write" style={{ textDecoration: 'none' }}>
+                <OrganicButton variant="primary" style={{ padding: '9px 20px', fontSize: '14px' }}>
+                  {t('write')}
+                </OrganicButton>
+              </Link>
+              <NotificationBell count={unreadCount} />
+              <Link
+                href={pathname}
+                locale={otherLocale}
+                className={styles.navLink}
+                aria-label="Switch language"
+              >
+                {locale === 'en' ? '中' : 'EN'}
+              </Link>
+              <Link href="/me" aria-label={t('me')}>
+                <HandDrawnAvatar
+                  initials={user.initials}
+                  size={36}
+                  color={user.accentColor}
+                  seed={77}
+                />
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
+
+      <AppMobileNavModal
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        user={user}
+        activeKey={activeKey}
+      />
+    </header>
+  );
+}
+
+export { HEADER_TOTAL_H };

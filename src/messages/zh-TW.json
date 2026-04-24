@@ -63,5 +63,224 @@
     "grainSoft": "輕微",
     "grainMedium": "中等",
     "grainHeavy": "強烈"
+  },
+  "app": {
+    "nav": {
+      "home": "共振 Feed",
+      "me": "我的卡片盒",
+      "write": "+ 寫卡片",
+      "notifications": "通知",
+      "settings": "設定",
+      "signOut": "登出"
+    },
+    "notifications": {
+      "empty": "還沒有新的聲音。",
+      "invite": "{handle} 想和你連結",
+      "resonanceSummary": "昨天有 {count} 個人與你共振",
+      "translationDone": "卡片翻譯完成",
+      "viewAll": "查看全部"
+    }
+  },
+  "home": {
+    "heading": "今日共振",
+    "subheading": "AI 為你每日挑選的思維同頻,不是熱門,是共振。",
+    "moreBtn": "再給我 3 張",
+    "endOfDay": "今天就到這裡 🌙",
+    "writeResponse": "寫一張回應",
+    "empty": {
+      "title": "先寫下你的第一張卡片,",
+      "subtitle": "這樣 AI 才能幫你找到同頻的聲音。",
+      "cta": "開始寫"
+    },
+    "matchReason": "因為「{reason}」"
+  },
+  "card": {
+    "resonate": "🌊 共振",
+    "resonated": "已共振",
+    "writeResponse": "寫一張卡片回應",
+    "initiateConnect": "想和 Ta 連結",
+    "translateTo": "翻譯成",
+    "showOriginal": "顯示原文",
+    "related": "延伸的卡片",
+    "authorMetrics": {
+      "title": "只有你看得到",
+      "reads": "被閱讀",
+      "resonances": "產生共振",
+      "inviteRequests": "邀請連結"
+    },
+    "verified": "已驗證",
+    "private": "私人卡片",
+    "connections": "僅連結可見"
+  },
+  "write": {
+    "title": "寫一張新卡片",
+    "editTitle": "編輯草稿",
+    "coreLabel": "一句話:這張卡的思維核心",
+    "corePlaceholder": "例:被看見,比被喜歡更難得。",
+    "storyLabel": "故事本體",
+    "storyPlaceholder": "把那個讓你忍不住寫下思維核心的時刻,寫出來⋯",
+    "storyMin": "再多一點點,讓它有份量({count}/300)",
+    "storyOk": "剛剛好的厚度 ✿",
+    "storyLong": "這張卡有點長了,會拆開讀者的專注力",
+    "tagsLabel": "標籤(讓別人找得到你)",
+    "tagsSuggest": "AI 幫你想 3–5 個",
+    "mediaLabel": "搭配一張圖或一段影片(選填)",
+    "visibility": {
+      "label": "誰可以看見",
+      "public": "公開",
+      "connections": "僅連結的人",
+      "private": "只有自己"
+    },
+    "ai": {
+      "panel": "AI 寫作夥伴",
+      "polish": "潤稿",
+      "polishHint": "保留你的語氣,只修通順",
+      "title": "下標建議",
+      "titleHint": "給你 3 個思維核心候選",
+      "tags": "生成標籤",
+      "tagsHint": "偏思維概念,不是關鍵字",
+      "apply": "採用",
+      "keep": "保留",
+      "regenerate": "再試一次",
+      "stubNotice": "(MVP 階段 AI 是示意,Phase 3 接入真模型)"
+    },
+    "saveDraft": "儲存草稿",
+    "publish": "發布",
+    "publishing": "發布中⋯",
+    "autosaved": "草稿已自動儲存 · {time}"
+  },
+  "me": {
+    "joined": "{date} 加入",
+    "editProfile": "編輯個人檔案",
+    "bioEmpty": "還沒寫下一句話關於自己。",
+    "tabs": {
+      "published": "已發布",
+      "private": "私人卡",
+      "draft": "草稿",
+      "resonated": "我共振過的",
+      "thoughtMap": "思想地圖"
+    },
+    "thoughtMapSoon": "思想地圖會在 Phase 2 上線。",
+    "emptyPublished": "還沒有發布任何卡片。",
+    "emptyPrivate": "還沒有私人卡片。",
+    "emptyDraft": "沒有草稿。",
+    "emptyResonated": "還沒共振過別人的卡片。"
+  },
+  "profile": {
+    "notConnected": "尚未連結",
+    "connected": "已連結",
+    "initiateConnect": "想和 Ta 連結",
+    "message": "私訊",
+    "softLock": "更多卡片,留給有緣人看 ✿",
+    "more": "⋯",
+    "report": "檢舉",
+    "block": "封鎖",
+    "disconnect": "解除連結",
+    "translating": "翻譯中⋯",
+    "showOriginal": "顯示原文"
+  },
+  "invite": {
+    "title": "想和 Ta 連結",
+    "referenceCard": "引用一張卡片(選填)",
+    "noReference": "不引用",
+    "messageLabel": "說一句話(必填,14–140 字)",
+    "messagePlaceholder": "讓對方知道你為什麼想連結⋯",
+    "quota": "今天還可以邀請 {n} 次",
+    "quotaFull": "今天的邀請額度用完了,明天再來吧",
+    "send": "送出邀請",
+    "cancel": "取消",
+    "sent": "等待對方回應",
+    "receivedTitle": "{handle} 想和你連結",
+    "accept": "接受",
+    "later": "晚點再說",
+    "seeWho": "看 Ta 是誰",
+    "successTitle": "你們連上線了 ✿",
+    "successSubtitle": "現在可以看見彼此完整的卡片盒,也可以私訊。",
+    "expiresIn": "{days} 天內回應即可"
+  },
+  "auth": {
+    "signInTitle": "回到共振",
+    "signUpTitle": "第一次造訪",
+    "email": "電子郵件",
+    "password": "密碼",
+    "magicLink": "寄登入連結給我",
+    "signIn": "登入",
+    "signUp": "建立帳號",
+    "switchToSignUp": "還沒有帳號?",
+    "switchToSignIn": "已經有帳號?",
+    "step": "第 {current} / {total} 步",
+    "stepEmail": "電子郵件",
+    "stepPhone": "手機驗證",
+    "stepHandle": "選一個筆名",
+    "phoneLabel": "手機號碼",
+    "phoneHint": "用來確認你是真人,不會公開顯示。",
+    "otpLabel": "簡訊驗證碼",
+    "otpSend": "寄驗證碼",
+    "otpResend": "重新寄送",
+    "handleLabel": "筆名 (2–20 字)",
+    "handleAvailable": "可以使用 ✿",
+    "handleTaken": "已經有人用了",
+    "handleChecking": "確認中⋯",
+    "regionLabel": "你在哪個地區?",
+    "primaryLocaleLabel": "你主要用的語言",
+    "autoTranslateLabel": "自動把我的卡片翻譯成:",
+    "next": "下一步",
+    "back": "上一步",
+    "finish": "完成建立",
+    "welcome": "歡迎,{handle}。先寫第一張卡片吧。"
+  },
+  "settings": {
+    "title": "設定",
+    "sections": {
+      "profile": "個人檔案",
+      "account": "帳號",
+      "privacy": "隱私與連結",
+      "notifications": "通知",
+      "language": "語言",
+      "ai": "AI 寫作夥伴",
+      "terms": "條款",
+      "delete": "刪除帳號"
+    },
+    "profile": {
+      "handle": "筆名",
+      "handleCooldown": "每 30 天可修改一次",
+      "bio": "一句話介紹 (≤ 80 字)",
+      "region": "地區"
+    },
+    "account": {
+      "email": "電子郵件",
+      "phone": "手機 (已驗證)",
+      "password": "密碼"
+    },
+    "privacy": {
+      "defaultVisibility": "預設發布範圍",
+      "searchable": "允許以筆名被搜尋",
+      "aiOptIn": "允許我的卡片成為 AI 學習資料",
+      "manageBlocks": "管理封鎖名單"
+    },
+    "notifications": {
+      "resonance": "共振摘要(每日)",
+      "connection": "連結邀請",
+      "dm": "私訊",
+      "translation": "翻譯完成"
+    },
+    "language": {
+      "ui": "介面語言",
+      "original": "我主要書寫的語言",
+      "autoTranslate": "自動翻譯我的卡片",
+      "readPreference": "閱讀別人的卡時"
+    },
+    "ai": {
+      "polish": "允許 AI 幫我潤稿",
+      "tags": "允許 AI 幫我生成標籤",
+      "hints": "允許 AI 在空白卡片時提示"
+    },
+    "delete": {
+      "title": "刪除帳號",
+      "warn": "刪除後 7 天內可反悔。我們會幫你匯出一份備份。",
+      "button": "開始刪除流程"
+    },
+    "save": "儲存變更",
+    "saved": "已儲存 ✿"
   }
 }

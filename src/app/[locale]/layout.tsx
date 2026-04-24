@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
-import { TweaksPanel } from '@/components/providers/TweaksPanel';
+import { NextIntlProvider } from '@/components/providers/NextIntlProvider';
+import TweaksPanel from '@/components/providers/TweaksPanel';
 import '@/styles/globals.css';
 
 export function generateStaticParams() {
@@ -49,10 +49,10 @@ export default async function LocaleLayout({
         />
       </head>
       <body>
-        <NextIntlClientProvider messages={messages} locale={locale}>
+        <NextIntlProvider messages={messages} locale={locale}>
           {children}
           <TweaksPanel />
-        </NextIntlClientProvider>
+        </NextIntlProvider>
       </body>
     </html>
   );

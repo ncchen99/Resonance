@@ -1,67 +1,286 @@
 {
   "metadata": {
     "title": "Resonance — Let lives influence lives",
-    "description": "A space where human stories connect across the world."
+    "description": "A space for real life stories from around the world to connect."
   },
   "nav": {
     "about": "About",
     "explore": "Explore",
     "stories": "Stories",
     "signIn": "Sign In",
-    "languageSwitch": "中文",
+    "languageSwitch": "中",
     "openMenu": "Open menu",
     "siteNav": "Site navigation"
   },
   "hero": {
-    "tag": "✦ human stories",
+    "tag": "✦ Real life stories",
     "headlinePrefix": "Let lives",
     "headlineAccent": "influence",
     "headlineSuffix": "lives",
-    "description": "A space where human stories connect across the world. Read, share, and resonate with experiences that shape who we are.",
-    "explore": "Explore Stories",
-    "share": "Share Your Story",
+    "description": "A space for real life stories from around the world to connect. Read, share, and resonate with the experiences that shape us.",
+    "explore": "Explore stories",
+    "share": "Share your story",
     "proof": "Join 12,000+ storytellers worldwide"
   },
   "feed": {
-    "tag": "recent stories",
+    "tag": "Latest stories",
     "title": "Stories worth reading",
-    "subtitle": "Real experiences from real people — every voice carries a world.",
-    "viewAll": "View All Stories"
+    "subtitle": "Real people, real experiences — every voice carries a world.",
+    "viewAll": "View all stories"
   },
   "cta": {
     "title": "Share your story and let the world hear your voice",
-    "description": "Every story matters. Yours could be the one that changes someone's day.",
-    "start": "Start Sharing",
-    "create": "Create a Story"
+    "description": "Every story matters. Yours might be the one that changes someone’s day.",
+    "start": "Start sharing",
+    "create": "Create a story"
   },
   "footer": {
     "tagline": "Let lives influence lives",
     "about": "About",
     "contact": "Contact",
-    "privacy": "Privacy Policy",
-    "terms": "Terms of Service",
+    "privacy": "Privacy",
+    "terms": "Terms",
     "copyright": "© 2026 Resonance. All rights reserved."
   },
   "tweaks": {
     "title": "Tweaks",
     "open": "Open tweaks panel",
     "close": "Close tweaks panel",
-    "accentColor": "Accent Color",
+    "accentColor": "Accent color",
     "accentTerracotta": "Terracotta (default)",
-    "accentSage": "Sage Green",
+    "accentSage": "Sage",
     "accentLavender": "Lavender",
-    "accentYellow": "Golden Yellow",
-    "fontFamily": "Heading Font",
+    "accentYellow": "Yellow",
+    "fontFamily": "Heading font",
     "fontDefault": "Playfair Display (default)",
-    "fontHandwritten": "Chenyuluoyan (handwritten)",
-    "cardDensity": "Card Density",
-    "densityNormal": "Normal (3-col)",
-    "densityCompact": "Compact (4-col)",
-    "densityAiry": "Airy (2-col)",
-    "grainIntensity": "Grain Intensity",
+    "fontHandwritten": "Handwritten",
+    "cardDensity": "Card density",
+    "densityNormal": "Normal (3 col)",
+    "densityCompact": "Compact (4 col)",
+    "densityAiry": "Airy (2 col)",
+    "grainIntensity": "Grain",
     "grainNone": "None",
     "grainSoft": "Soft",
     "grainMedium": "Medium",
     "grainHeavy": "Heavy"
+  },
+  "app": {
+    "nav": {
+      "home": "Resonance Feed",
+      "me": "My Card Box",
+      "write": "+ Write",
+      "notifications": "Notifications",
+      "settings": "Settings",
+      "signOut": "Sign out"
+    },
+    "notifications": {
+      "empty": "No new voices yet.",
+      "invite": "{handle} wants to connect",
+      "resonanceSummary": "{count} people resonated with you yesterday",
+      "translationDone": "Translation complete",
+      "viewAll": "View all"
+    }
+  },
+  "home": {
+    "heading": "Today’s resonances",
+    "subheading": "AI picks thought-matches daily — not trending, just resonant.",
+    "moreBtn": "3 more",
+    "endOfDay": "That’s all for today 🌙",
+    "writeResponse": "Write a response",
+    "empty": {
+      "title": "Write your first card",
+      "subtitle": "so AI can find voices that resonate with yours.",
+      "cta": "Start writing"
+    },
+    "matchReason": "because of “{reason}”"
+  },
+  "card": {
+    "resonate": "🌊 Resonate",
+    "resonated": "Resonated",
+    "writeResponse": "Write a card in response",
+    "initiateConnect": "Invite to connect",
+    "translateTo": "Translate to",
+    "showOriginal": "Show original",
+    "related": "Extended cards",
+    "authorMetrics": {
+      "title": "Only you see this",
+      "reads": "Reads",
+      "resonances": "Resonances",
+      "inviteRequests": "Invites"
+    },
+    "verified": "Verified",
+    "private": "Private",
+    "connections": "Connections only"
+  },
+  "write": {
+    "title": "New card",
+    "editTitle": "Edit draft",
+    "coreLabel": "One line: the thought at the core",
+    "corePlaceholder": "e.g. Being seen matters more than being liked.",
+    "storyLabel": "Story",
+    "storyPlaceholder": "Write the moment that pulled that line out of you…",
+    "storyMin": "A little more, let it land ({count}/300)",
+    "storyOk": "The right weight ✿",
+    "storyLong": "This is getting long — it may split the reader’s attention",
+    "tagsLabel": "Tags",
+    "tagsSuggest": "AI: suggest 3–5",
+    "mediaLabel": "Image or video (optional)",
+    "visibility": {
+      "label": "Who can see",
+      "public": "Public",
+      "connections": "Connections only",
+      "private": "Only me"
+    },
+    "ai": {
+      "panel": "AI writing partner",
+      "polish": "Polish",
+      "polishHint": "Keep your voice, just smooth the prose",
+      "title": "Title ideas",
+      "titleHint": "3 candidates for the core thought",
+      "tags": "Generate tags",
+      "tagsHint": "Concepts, not keywords",
+      "apply": "Use",
+      "keep": "Keep mine",
+      "regenerate": "Try again",
+      "stubNotice": "(MVP AI is a stub; real model in Phase 3)"
+    },
+    "saveDraft": "Save draft",
+    "publish": "Publish",
+    "publishing": "Publishing…",
+    "autosaved": "Draft saved · {time}"
+  },
+  "me": {
+    "joined": "Joined {date}",
+    "editProfile": "Edit profile",
+    "bioEmpty": "No bio yet.",
+    "tabs": {
+      "published": "Published",
+      "private": "Private",
+      "draft": "Drafts",
+      "resonated": "Resonated",
+      "thoughtMap": "Thought map"
+    },
+    "thoughtMapSoon": "Thought map lands in Phase 2.",
+    "emptyPublished": "Nothing published yet.",
+    "emptyPrivate": "No private cards.",
+    "emptyDraft": "No drafts.",
+    "emptyResonated": "No resonances yet."
+  },
+  "profile": {
+    "notConnected": "Not connected",
+    "connected": "Connected",
+    "initiateConnect": "Invite to connect",
+    "message": "Message",
+    "softLock": "More cards, saved for those who connect ✿",
+    "more": "⋯",
+    "report": "Report",
+    "block": "Block",
+    "disconnect": "Disconnect",
+    "translating": "Translating…",
+    "showOriginal": "Show original"
+  },
+  "invite": {
+    "title": "Invite to connect",
+    "referenceCard": "Reference a card (optional)",
+    "noReference": "None",
+    "messageLabel": "Say one thing (required, 14–140 chars)",
+    "messagePlaceholder": "Let them know why you want to connect…",
+    "quota": "{n} invites left today",
+    "quotaFull": "Daily invite quota used up. Try tomorrow.",
+    "send": "Send invite",
+    "cancel": "Cancel",
+    "sent": "Waiting for their response",
+    "receivedTitle": "{handle} wants to connect",
+    "accept": "Accept",
+    "later": "Later",
+    "seeWho": "See who",
+    "successTitle": "You’re connected ✿",
+    "successSubtitle": "You can now see each other’s full card box and DM.",
+    "expiresIn": "{days} days to respond"
+  },
+  "auth": {
+    "signInTitle": "Welcome back",
+    "signUpTitle": "First visit",
+    "email": "Email",
+    "password": "Password",
+    "magicLink": "Send me a magic link",
+    "signIn": "Sign in",
+    "signUp": "Create account",
+    "switchToSignUp": "No account yet?",
+    "switchToSignIn": "Already have one?",
+    "step": "Step {current} / {total}",
+    "stepEmail": "Email",
+    "stepPhone": "Verify phone",
+    "stepHandle": "Pick a handle",
+    "phoneLabel": "Phone number",
+    "phoneHint": "We use it to check you’re a real person. Never shown publicly.",
+    "otpLabel": "SMS code",
+    "otpSend": "Send code",
+    "otpResend": "Resend",
+    "handleLabel": "Handle (2–20 chars)",
+    "handleAvailable": "Available ✿",
+    "handleTaken": "Taken",
+    "handleChecking": "Checking…",
+    "regionLabel": "Where are you?",
+    "primaryLocaleLabel": "Your main language",
+    "autoTranslateLabel": "Auto-translate my cards to:",
+    "next": "Next",
+    "back": "Back",
+    "finish": "Finish",
+    "welcome": "Welcome, {handle}. Start with your first card."
+  },
+  "settings": {
+    "title": "Settings",
+    "sections": {
+      "profile": "Profile",
+      "account": "Account",
+      "privacy": "Privacy & connections",
+      "notifications": "Notifications",
+      "language": "Language",
+      "ai": "AI writing partner",
+      "terms": "Terms",
+      "delete": "Delete account"
+    },
+    "profile": {
+      "handle": "Handle",
+      "handleCooldown": "Editable once every 30 days",
+      "bio": "One-line bio (≤ 80 chars)",
+      "region": "Region"
+    },
+    "account": {
+      "email": "Email",
+      "phone": "Phone (verified)",
+      "password": "Password"
+    },
+    "privacy": {
+      "defaultVisibility": "Default publish scope",
+      "searchable": "Searchable by handle",
+      "aiOptIn": "Let AI learn from my cards",
+      "manageBlocks": "Manage blocks"
+    },
+    "notifications": {
+      "resonance": "Daily resonance summary",
+      "connection": "Connection invites",
+      "dm": "Direct messages",
+      "translation": "Translation complete"
+    },
+    "language": {
+      "ui": "UI language",
+      "original": "Primary writing language",
+      "autoTranslate": "Auto-translate my cards",
+      "readPreference": "When reading others’ cards"
+    },
+    "ai": {
+      "polish": "Let AI polish my drafts",
+      "tags": "Let AI generate tags",
+      "hints": "Let AI offer hints on empty cards"
+    },
+    "delete": {
+      "title": "Delete account",
+      "warn": "You have 7 days to undo. We’ll export a backup.",
+      "button": "Begin deletion"
+    },
+    "save": "Save changes",
+    "saved": "Saved ✿"
   }
 }

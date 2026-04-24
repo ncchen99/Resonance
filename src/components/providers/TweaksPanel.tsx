@@ -62,7 +62,7 @@ function applyTweaks(vals: TweakState) {
   window.parent.postMessage({ type: '__edit_mode_set_keys', edits: vals }, '*');
 }
 
-export function TweaksPanel() {
+export default function TweaksPanel() {
   const [open, setOpen] = useState(false);
   const [state, setState] = useState<TweakState>(TWEAK_DEFAULTS);
   const t = useTranslations('tweaks');
