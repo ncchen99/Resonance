@@ -89,7 +89,7 @@ export function SiteHeader() {
 
       <div className={styles.row} style={{ height: HEADER_BODY_H }}>
         <a href="#" className={styles.logo}>
-          <ResonanceIcon size={34} />
+          <ResonanceIcon size={42} />
           <span className={styles.brand}>Resonance</span>
         </a>
 

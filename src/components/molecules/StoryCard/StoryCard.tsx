@@ -110,7 +110,7 @@ export function StoryCard({ story, index = 0, isLast = false }: StoryCardProps) 
   const R = 22;
 
   const cardInterior = `oklch(97.5% 0.012 ${hue})`;
-  const cardHovered = `oklch(95.8% 0.016 ${hue})`;
+  const cardHovered = `oklch(92.5% 0.024 ${hue})`;
 
   const dividerPath = useMemo(() => wavyLine(200, seed + 17, 1.4, 7), [seed]);
   const separatorPath = useMemo(() => wavyLine(200, seed + 91, 1.2, 6), [seed]);
