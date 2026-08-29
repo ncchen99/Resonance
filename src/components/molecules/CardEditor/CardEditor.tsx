@@ -30,6 +30,11 @@ import {
   publishCard,
   updateCardDraft,
 } from '@/lib/db/firestore/client/cards';
+import {
+  applyPendingCardEdit,
+  discardPendingCardEdit,
+  savePendingCardEdit,
+} from '@/lib/db/firestore/client/cardEdits';
 import { ensureConnection } from '@/lib/db/firestore/client/connections';
 import { getCurrentUserHandle } from '@/lib/db/firestore/client/profile';
 import { getCardById } from '@/lib/db/firestore/client/reads';
@@ -44,6 +49,17 @@ import styles from './CardEditor.module.css';
 export interface CardEditorProps {
   initial?: {
     id?: string;
+    /** URL slug of a published card — where saving an edit returns to. */
+    slug?: string;
+    /**
+     * Set when this card is already live. Flips the editor from "writing a
+     * draft" to "revising something people can read": autosave goes to the
+     * private pending-edit buffer instead of the card, and the primary action
+     * becomes 儲存修改 rather than 發布.
+     */
+    publishedAt?: Date | null;
+    /** A working copy was already buffered for this published card. */
+    hasPendingEdit?: boolean;
     thoughtCore?: string;
     story?: string;
     tags?: string[];
@@ -75,6 +91,12 @@ export interface CardEditorProps {
    * into a private note).
    */
   onStoryChange?: (story: string) => void;
+  /**
+   * Reports the save state as ready-to-render copy ("草稿已自動儲存 · 14:32").
+   * The host shows it beside the page title — the reassurance has to be
+   * visible without scrolling to the bottom of the form.
+   */
+  onSaveStatusChange?: (label: string | null) => void;
 }
 
 // AI 寫作夥伴：暫時停用，未來會重新啟用
@@ -124,6 +146,7 @@ export function CardEditor({
   onPublished,
   onSavedDraft,
   onStoryChange,
+  onSaveStatusChange,
 }: CardEditorProps) {
   const t = useTranslations('write');
   const tCard = useTranslations('card');
@@ -157,6 +180,11 @@ export function CardEditor({
   // const [polishPreview, setPolishPreview] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  // Revising a live card: the primary action saves changes rather than
+  // publishing, and autosave buffers instead of writing through. Fixed for the
+  // editor's lifetime — the host remounts it when the route's card changes.
+  const isPublished = initial?.publishedAt != null;
+  const [hasPendingEdit, setHasPendingEdit] = useState(initial?.hasPendingEdit ?? false);
 
   useEffect(() => {
     onStoryChange?.(story);
@@ -164,11 +192,13 @@ export function CardEditor({
   }, [story]);
 
   // ---- Autosave ---------------------------------------------------------
-  // The draft persists on its own shortly after editing pauses, so there is
-  // no Save-draft button and no leave guard — backing out of the editor is
-  // always safe. Everything the save needs travels through refs so the
-  // debounce timer, the unmount flush, and the publish path all write the
-  // same latest values.
+  // Work persists on its own shortly after editing pauses, so backing out of
+  // the editor is always safe. *Where* it persists depends on the card:
+  //   • a draft writes straight to its own document — nobody can read it yet;
+  //   • a published card writes to its private pending-edit buffer, so a
+  //     half-finished revision never reaches the people already reading it.
+  // Everything the save needs travels through refs so the debounce timer, the
+  // unmount flush, and the publish path all write the same latest values.
   const draftIdRef = useRef(initial?.id);
   const values: DraftValues = { thoughtCore, story, tags, visibility, anonymous, media, accentHue };
   const valuesRef = useRef(values);
@@ -187,13 +217,30 @@ export function CardEditor({
   // All draft writes queue on one chain so an in-flight autosave can never
   // race the publish path into creating a second document.
   const writeChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  // Set once the editor is done with this card (saved or discarded): the
+  // unmount flush must not resurrect a buffer we just cleared.
+  const closedRef = useRef(false);
 
-  const autosavedLabel = useMemo(() => {
-    if (!savedAt) return null;
-    return t('autosaved', {
-      time: savedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
-    });
-  }, [savedAt, locale, t]);
+  /**
+   * One line of plain reassurance, shown next to the page title (never only at
+   * the bottom of the form — the whole confusion was people not knowing their
+   * writing was safe). It says both what has happened and, for a live card,
+   * what has *not* happened yet.
+   */
+  const saveStatusLabel = useMemo(() => {
+    if (inline) return null;
+    const time = savedAt?.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    if (isPublished) {
+      if (savedAt) return t('editBuffered', { time: time! });
+      return hasPendingEdit ? t('editBufferedIdle') : t('editLiveHint');
+    }
+    return savedAt ? t('autosaved', { time: time! }) : t('autosaveHint');
+  }, [savedAt, hasPendingEdit, isPublished, inline, locale, t]);
+
+  useEffect(() => {
+    onSaveStatusChange?.(saveStatusLabel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveStatusLabel]);
 
   async function suggestTags() {
     if (suggestingTags) return;
@@ -242,22 +289,44 @@ export function CardEditor({
     anonymous?: boolean;
   }
 
-  function saveDraft(choices?: PublishChoices): Promise<Card> {
+  /** The editable body, in the shape both the card doc and the buffer take. */
+  function payloadFrom(v: DraftValues) {
+    return {
+      thoughtCore: v.thoughtCore,
+      story: v.story,
+      tags: v.tags,
+      visibility: v.visibility,
+      media: v.media,
+      accentHue: v.accentHue,
+      anonymous: v.anonymous,
+    };
+  }
+
+  /** Current values, with any publish/update panel choices layered on top. */
+  function currentValues(choices?: PublishChoices): DraftValues {
+    return {
+      ...valuesRef.current,
+      visibility: choices?.visibility ?? valuesRef.current.visibility,
+      anonymous: choices?.anonymous ?? valuesRef.current.anonymous,
+    };
+  }
+
+  /**
+   * Persist the working copy. Returns the card for a draft (the caller may
+   * need its freshly minted id); a published card's edits land in the buffer,
+   * which has no card to hand back — hence `null`.
+   */
+  function saveDraft(choices?: PublishChoices): Promise<Card | null> {
     const run = writeChainRef.current.then(async () => {
-      const v: DraftValues = {
-        ...valuesRef.current,
-        visibility: choices?.visibility ?? valuesRef.current.visibility,
-        anonymous: choices?.anonymous ?? valuesRef.current.anonymous,
-      };
-      const payload = {
-        thoughtCore: v.thoughtCore,
-        story: v.story,
-        tags: v.tags,
-        visibility: v.visibility,
-        media: v.media,
-        accentHue: v.accentHue,
-        anonymous: v.anonymous,
-      };
+      const v = currentValues(choices);
+      const payload = payloadFrom(v);
+      if (isPublished && draftIdRef.current) {
+        await savePendingCardEdit(draftIdRef.current, payload);
+        setHasPendingEdit(true);
+        lastSavedRef.current = draftSnapshot(v);
+        setSavedAt(new Date());
+        return null;
+      }
       const card = draftIdRef.current
         ? await updateCardDraft(draftIdRef.current, payload)
         : await createCardDraft({ ...payload, originalLocale: locale, referenceCardId });
@@ -285,6 +354,7 @@ export function CardEditor({
   // Failures stay silent (logged) — the state remains dirty, so the next
   // pause or the publish path retries.
   function autosaveNow() {
+    if (closedRef.current) return;
     const v = valuesRef.current;
     if (draftSnapshot(v) === lastSavedRef.current) return;
     if (!draftIdRef.current && isEmptyDraft(v)) return;
@@ -324,6 +394,7 @@ export function CardEditor({
     setPublishError(null);
     try {
       const card = await saveDraft(choices);
+      if (!card) throw new Error('Draft was not saved');
       const published = await publishCard(card.id);
       // Auto-generate the English URL slug (LLM translation of the title, made
       // collision-free server-side). Fall back to the doc id if it fails so
@@ -375,6 +446,96 @@ export function CardEditor({
       }
     } catch (err) {
       console.error('Publish failed:', err);
+      setPublishError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  /** Where a published card's editor returns to. */
+  const cardHref = `/card/${initial?.slug ?? draftIdRef.current ?? initial?.id ?? ''}`;
+
+  /**
+   * Merge the buffered revision into the live card. This — not autosave — is
+   * the moment an edit becomes visible to readers. `publishedAt` is left
+   * alone: updating a card is not re-publishing it.
+   */
+  async function applyUpdate(choices?: PublishChoices) {
+    const id = draftIdRef.current;
+    if (pending || !id) return;
+    setPending(true);
+    setPublishError(null);
+    try {
+      const v = currentValues(choices);
+      // Queue behind any in-flight autosave so the buffer delete can't land
+      // before a straggling write re-creates it.
+      const run = writeChainRef.current.then(() => applyPendingCardEdit(id, payloadFrom(v)));
+      writeChainRef.current = run.catch(() => undefined);
+      const card = await run;
+      lastSavedRef.current = draftSnapshot(v);
+      setHasPendingEdit(false);
+      closedRef.current = true;
+      const destination = card.slug ?? initial?.slug ?? id;
+      // Re-index for recommendations (the story changed) and bust the card
+      // page's ISR cache — same grace-note treatment as publishing: never
+      // awaited, never allowed to block the save.
+      void fetch('/api/cards/index', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId: id }),
+      }).catch(() => {});
+      void requestRevalidate([`/card/${destination}`]);
+      router.push(`/card/${destination}`);
+    } catch (err) {
+      console.error('Save changes failed:', err);
+      closedRef.current = false;
+      setPublishError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  /** Throw the buffered revision away; the live card was never touched. */
+  async function discardEdits() {
+    const id = draftIdRef.current;
+    if (pending || !id) return;
+    setPending(true);
+    setPublishError(null);
+    try {
+      const run = writeChainRef.current.then(() => discardPendingCardEdit(id));
+      writeChainRef.current = run.catch(() => undefined);
+      await run;
+      setHasPendingEdit(false);
+      closedRef.current = true;
+      router.push(cardHref);
+    } catch (err) {
+      console.error('Discard edits failed:', err);
+      closedRef.current = false;
+      setPublishError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  /**
+   * The explicit way out of a draft. Autosave already makes leaving safe, but
+   * "just close the window" is not something anyone should have to infer —
+   * this gives the intent a button to land on.
+   */
+  async function saveDraftAndLeave() {
+    if (pending) return;
+    setPending(true);
+    setPublishError(null);
+    try {
+      const v = valuesRef.current;
+      if (draftSnapshot(v) !== lastSavedRef.current && !(!draftIdRef.current && isEmptyDraft(v))) {
+        await saveDraft();
+      }
+      closedRef.current = true;
+      router.back();
+    } catch (err) {
+      console.error('Save draft failed:', err);
+      closedRef.current = false;
       setPublishError(err instanceof Error ? err.message : String(err));
     } finally {
       setPending(false);
@@ -660,7 +821,7 @@ export function CardEditor({
                     setPending(true);
                     setPublishError(null);
                     saveDraft()
-                      .then((card) => onSavedDraft?.(card))
+                      .then((card) => card && onSavedDraft?.(card))
                       .catch((err) => {
                         console.error('Save draft failed:', err);
                         setPublishError(err instanceof Error ? err.message : String(err));
@@ -676,7 +837,9 @@ export function CardEditor({
           </div>
         ) : (
         <div className={styles.actions}>
-          {/* Drafts autosave — the only explicit action left is publishing. */}
+          {/* Everything autosaves; these buttons are only about *intent*.
+              A draft: publish it, or step away and come back later. A live
+              card: put the revision in front of readers, or drop it. */}
           <div style={{ opacity: pending ? 0.6 : 1, pointerEvents: pending ? 'none' : 'auto' }}>
             <OrganicButton
               variant="primary"
@@ -685,19 +848,34 @@ export function CardEditor({
                 setPublishOpen(true);
               }}
             >
-              {pending ? t('publishing') : t('publish')}
+              {isPublished
+                ? pending
+                  ? t('saving')
+                  : t('saveChanges')
+                : pending
+                ? t('publishing')
+                : t('publish')}
             </OrganicButton>
           </div>
+          {(isPublished ? hasPendingEdit : true) && (
+            <div style={{ opacity: pending ? 0.6 : 1, pointerEvents: pending ? 'none' : 'auto' }}>
+              <OrganicButton
+                variant="ghost"
+                onClick={() => void (isPublished ? discardEdits() : saveDraftAndLeave())}
+              >
+                {isPublished ? t('discardChanges') : t('saveDraftAndLeave')}
+              </OrganicButton>
+            </div>
+          )}
           {publishError && !publishOpen && (
             <span style={{ fontSize: 12, color: 'var(--color-terracotta)' }}>
               {publishError}
             </span>
           )}
-          {autosavedLabel && (
-            <span className={styles.autosave}>
-              <Icon name="check" size={12} color="oklch(55% 0.13 140)" /> {autosavedLabel}
-            </span>
-          )}
+          {/* The save state used to live here and nowhere else, which is why
+              nobody found it. It now sits under the page title
+              (`onSaveStatusChange`); a second copy beside the buttons would
+              just be the same sentence twice on one screen. */}
         </div>
         )}
 
@@ -705,6 +883,7 @@ export function CardEditor({
           <PublishPanel
             open={publishOpen}
             onClose={() => setPublishOpen(false)}
+            mode={isPublished ? 'update' : 'publish'}
             thoughtCore={thoughtCore}
             story={story}
             initialVisibility={visibility}
@@ -716,7 +895,8 @@ export function CardEditor({
               // open) retries with the same choices.
               setVisibility(choices.visibility);
               setAnonymous(choices.anonymous);
-              void submit(choices);
+              if (isPublished) void applyUpdate(choices);
+              else void submit(choices);
             }}
           />
         )}

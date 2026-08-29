@@ -87,9 +87,19 @@ export async function updateCardDraft(
 export async function publishCard(id: string): Promise<Card> {
   requireUid();
   const ref = doc(getClientDb(), 'cards', id);
+  const before = await getDoc(ref);
+  // Publishing stamps the card once. Re-stamping an already-published card
+  // would re-date it: every feed orders by publishedAt, so an edit would jump
+  // the card back to the top of everyone's home and change the date readers
+  // see. Editing a published card goes through the pending-edit buffer
+  // (see ./cardEdits) and never comes here.
+  const alreadyPublished = before.data()?.publishedAt != null;
   await setDoc(
     ref,
-    { publishedAt: serverTimestamp(), updatedAt: serverTimestamp() },
+    {
+      ...(alreadyPublished ? {} : { publishedAt: serverTimestamp() }),
+      updatedAt: serverTimestamp(),
+    },
     { merge: true }
   );
   const snap = await getDoc(ref);

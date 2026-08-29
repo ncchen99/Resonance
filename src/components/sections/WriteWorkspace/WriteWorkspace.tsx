@@ -42,6 +42,10 @@ export function WriteWorkspace({
   // A card opened from the map takes over the pane (in-memory Card → no
   // loading); the same card as this route's draft keeps the live editor.
   const [openedCard, setOpenedCard] = useState<Card | null>(null);
+  // The editor's own save state, lifted so it sits under the page title.
+  // At the bottom of a long form it was invisible to exactly the people who
+  // needed it — the ones wondering whether it is safe to walk away.
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const showOpened = openedCard != null && openedCard.id !== initial?.id;
   // Only the very first card, started fresh (not edits, not resonances).
   const showGuide = hasWritten === false && !seed && !initial && !referenceCardId;
@@ -75,7 +79,7 @@ export function WriteWorkspace({
         <OpenedCardPane card={openedCard} />
       ) : (
         <div className={styles.editorCol}>
-          <PageTitle>{title}</PageTitle>
+          <PageTitle subtitle={saveStatus}>{title}</PageTitle>
           {showGuide && (
             <div style={{ marginBottom: 28 }}>
               <FirstCardGuide
@@ -93,6 +97,7 @@ export function WriteWorkspace({
             initial={seed ? { story: seed.story } : initial}
             locale={locale}
             referenceCardId={referenceCardId}
+            onSaveStatusChange={setSaveStatus}
           />
         </div>
       )}

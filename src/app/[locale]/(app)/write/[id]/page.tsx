@@ -7,6 +7,7 @@ import { SketchLoader } from '@/components/atoms/SketchLoader/SketchLoader';
 import { WriteWorkspace } from '@/components/sections/WriteWorkspace/WriteWorkspace';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { getCardById } from '@/lib/db/firestore/client/reads';
+import { getPendingCardEdit } from '@/lib/db/firestore/client/cardEdits';
 import { Link } from '@/i18n/navigation';
 import type { Locale } from '@/lib/db/types';
 
@@ -24,9 +25,15 @@ export default function EditCardPage() {
   // Wait for auth to settle: fetching during restoration would read as an
   // anonymous viewer and "not found" the owner's own draft.
   const key = id && user && !loading ? `editcard:${id}:${user.id}` : null;
-  const { data: card } = useSWR(key, () => getCardById(id!));
+  const { data } = useSWR(key, async () => {
+    const found = await getCardById(id!);
+    const pending = found?.publishedAt ? await getPendingCardEdit(found.id) : null;
+    return { card: found, pending };
+  });
+  const card = data?.card;
+  const pending = data?.pending ?? null;
 
-  const settled = card !== undefined || (!loading && !user);
+  const settled = data !== undefined || (!loading && !user);
   if (!settled) {
     return (
       <div
@@ -61,19 +68,25 @@ export default function EditCardPage() {
     );
   }
 
+  // Buffered edits win over the live fields — that is the copy being worked on.
+  const values = pending ?? card;
   return (
     <WriteWorkspace
-      title={t('editTitle')}
+      title={card.publishedAt ? t('editPublishedTitle') : t('editTitle')}
       locale={locale}
       referenceCardId={card.referenceCardId}
       initial={{
         id: card.id,
-        thoughtCore: card.thoughtCore,
-        story: card.story,
-        tags: card.tags,
-        visibility: card.visibility,
-        media: card.media,
-        anonymous: card.anonymous,
+        slug: card.slug,
+        publishedAt: card.publishedAt,
+        hasPendingEdit: pending != null,
+        thoughtCore: values.thoughtCore,
+        story: values.story,
+        tags: values.tags,
+        visibility: values.visibility,
+        media: values.media,
+        accentHue: values.accentHue ?? undefined,
+        anonymous: values.anonymous,
       }}
     />
   );

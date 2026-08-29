@@ -205,15 +205,6 @@
   margin-top: 6px;
 }
 
-.autosave {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin-left: auto;
-}
-
 .aiRow {
   display: flex;
   flex-direction: column;

@@ -98,6 +98,17 @@ service cloud.firestore {
       // missing card to null and drop it.
       allow delete: if signedIn()
         && resource.data.authorId == request.auth.uid;
+
+      // --- pending edits (cards/{cardId}/edits/current) ---
+      // Editing an already-published card autosaves *here*, never onto the
+      // live document: a half-written revision must not reach readers. The
+      // author merges it into the card explicitly ("儲存修改"), which deletes
+      // this doc. Owner-only — this is unpublished writing, so it cannot live
+      // as a field on the card (rules cannot redact individual fields).
+      match /edits/{editId} {
+        allow read, write: if signedIn()
+          && get(/databases/$(database)/documents/cards/$(cardId)).data.authorId == request.auth.uid;
+      }
     }
 
     // --- connections ---

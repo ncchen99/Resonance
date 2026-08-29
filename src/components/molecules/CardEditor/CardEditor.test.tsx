@@ -2,17 +2,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from '@testing-library/react';
 import { renderWithIntl, screen, fireEvent, waitFor, userEvent } from '@/../test/render';
+import en from '@/messages/en.json';
 import { CardEditor } from './CardEditor';
 
 const push = vi.fn();
+const back = vi.fn();
 vi.mock('@/i18n/navigation', () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({ push, back }),
 }));
 vi.mock('@/lib/db/firestore/client/cards', () => ({
   createCardDraft: vi.fn(),
   updateCardDraft: vi.fn(),
   publishCard: vi.fn(),
   deleteCardDraft: vi.fn(),
+}));
+vi.mock('@/lib/db/firestore/client/cardEdits', () => ({
+  savePendingCardEdit: vi.fn(),
+  applyPendingCardEdit: vi.fn(),
+  discardPendingCardEdit: vi.fn(),
+}));
+vi.mock('@/lib/db/firestore/client/revalidate', () => ({
+  requestRevalidate: vi.fn(),
 }));
 // The story field is a Tiptap (ProseMirror) editor that doesn't mount cleanly
 // in jsdom; mock it at the boundary with a plain textarea that preserves the
@@ -43,11 +53,34 @@ vi.mock('@/components/molecules/MarkdownEditor/MarkdownEditor', () => ({
 }));
 
 import { createCardDraft, updateCardDraft, publishCard } from '@/lib/db/firestore/client/cards';
+import {
+  applyPendingCardEdit,
+  discardPendingCardEdit,
+  savePendingCardEdit,
+} from '@/lib/db/firestore/client/cardEdits';
+
+/** A card that is already out in the world, opened for revision. */
+const livePost = {
+  id: 'card-1',
+  slug: 'a-quiet-thought',
+  publishedAt: new Date('2026-01-02'),
+  thoughtCore: 'A quiet thought',
+  story: 'The published story.',
+  tags: ['memory'],
+  visibility: 'public' as const,
+  anonymous: false,
+};
 
 beforeEach(() => {
   vi.mocked(createCardDraft).mockResolvedValue({ id: 'draft-1' } as never);
   vi.mocked(updateCardDraft).mockResolvedValue({ id: 'draft-1' } as never);
   vi.mocked(publishCard).mockResolvedValue({ id: 'pub-1' } as never);
+  vi.mocked(savePendingCardEdit).mockResolvedValue(undefined);
+  vi.mocked(discardPendingCardEdit).mockResolvedValue(undefined);
+  vi.mocked(applyPendingCardEdit).mockResolvedValue({
+    id: 'card-1',
+    slug: 'a-quiet-thought',
+  } as never);
 });
 afterEach(() => vi.clearAllMocks());
 
@@ -237,6 +270,131 @@ describe('CardEditor', () => {
           expect.objectContaining({ thoughtCore: 'Backed out right away' }),
         ),
       );
+    });
+
+    it('tells the writer their draft is safe, up where they can see it', async () => {
+      const onSaveStatusChange = vi.fn();
+      renderWithIntl(<CardEditor locale="en" onSaveStatusChange={onSaveStatusChange} />);
+      // Before anything is typed the promise is stated, not just implied.
+      await waitFor(() =>
+        expect(onSaveStatusChange).toHaveBeenCalledWith(en.write.autosaveHint),
+      );
+
+      fireEvent.change(screen.getByLabelText('One-line title'), {
+        target: { value: 'Something worth keeping' },
+      });
+      // The debounce is deliberately longer than waitFor's default window.
+      await waitFor(
+        () =>
+          expect(onSaveStatusChange).toHaveBeenCalledWith(
+            expect.stringContaining('Draft saved'),
+          ),
+        { timeout: 4000 },
+      );
+    });
+
+    it('saves and leaves when the writer takes the explicit way out', async () => {
+      renderWithIntl(<CardEditor locale="en" />);
+      fireEvent.change(screen.getByLabelText('One-line title'), {
+        target: { value: 'Enough for today' },
+      });
+      await userEvent.click(screen.getByRole('button', { name: 'Save draft and leave' }));
+
+      await waitFor(() =>
+        expect(createCardDraft).toHaveBeenCalledWith(
+          expect.objectContaining({ thoughtCore: 'Enough for today' }),
+        ),
+      );
+      expect(back).toHaveBeenCalled();
+      // Leaving a draft is never publishing it.
+      expect(publishCard).not.toHaveBeenCalled();
+    });
+  });
+
+  // Revising something people can already read is a different job from writing
+  // a draft: autosave must not push half-written sentences to readers, and the
+  // save must not re-publish (which would re-date the card).
+  describe('editing a published card', () => {
+    it('buffers autosaved edits privately instead of writing them live', async () => {
+      const onSaveStatusChange = vi.fn();
+      renderWithIntl(
+        <CardEditor locale="en" initial={livePost} onSaveStatusChange={onSaveStatusChange} />,
+      );
+      await waitFor(() =>
+        expect(onSaveStatusChange).toHaveBeenCalledWith(en.write.editLiveHint),
+      );
+
+      fireEvent.change(screen.getByLabelText('Story'), {
+        target: { value: 'A rewrite, mid-sentence and not ready for' },
+      });
+
+      await waitFor(
+        () =>
+          expect(savePendingCardEdit).toHaveBeenCalledWith(
+            'card-1',
+            expect.objectContaining({ story: 'A rewrite, mid-sentence and not ready for' }),
+          ),
+        { timeout: 4000 },
+      );
+      // The live document — the one readers are looking at — stays untouched.
+      expect(updateCardDraft).not.toHaveBeenCalled();
+      expect(publishCard).not.toHaveBeenCalled();
+      await waitFor(
+        () =>
+          expect(onSaveStatusChange).toHaveBeenCalledWith(
+            expect.stringContaining('readers still see the old version'),
+          ),
+        { timeout: 4000 },
+      );
+    });
+
+    it('applies the revision — without re-publishing — when the author saves', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({ ok: false });
+      vi.stubGlobal('fetch', fetchMock);
+      try {
+        renderWithIntl(<CardEditor locale="en" initial={livePost} />);
+        fireEvent.change(screen.getByLabelText('Story'), {
+          target: { value: 'The finished rewrite.' },
+        });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+        // The same panel, in update dress: no mirror moment, and it says plainly
+        // what the button is about to do.
+        expect(await screen.findByText(en.write.publishPanel.updateTitle)).toBeInTheDocument();
+        expect(screen.getByText(en.write.publishPanel.updateHint)).toBeInTheDocument();
+
+        const buttons = screen.getAllByRole('button', { name: 'Save changes' });
+        await userEvent.click(buttons[buttons.length - 1]);
+
+        await waitFor(() =>
+          expect(applyPendingCardEdit).toHaveBeenCalledWith(
+            'card-1',
+            expect.objectContaining({ story: 'The finished rewrite.' }),
+          ),
+        );
+        expect(publishCard).not.toHaveBeenCalled();
+        await waitFor(() => expect(push).toHaveBeenCalledWith('/card/a-quiet-thought'));
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
+    it('discards a buffered revision and returns to the untouched card', async () => {
+      renderWithIntl(
+        <CardEditor locale="en" initial={{ ...livePost, hasPendingEdit: true }} />,
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Discard changes' }));
+
+      await waitFor(() => expect(discardPendingCardEdit).toHaveBeenCalledWith('card-1'));
+      expect(updateCardDraft).not.toHaveBeenCalled();
+      expect(push).toHaveBeenCalledWith('/card/a-quiet-thought');
+    });
+
+    it('offers nothing to discard when there is no buffered revision', () => {
+      renderWithIntl(<CardEditor locale="en" initial={livePost} />);
+      expect(
+        screen.queryByRole('button', { name: 'Discard changes' }),
+      ).not.toBeInTheDocument();
     });
   });
 });

@@ -17,6 +17,9 @@ vi.mock('@/components/providers/AuthProvider', () => ({
 vi.mock('@/lib/db/firestore/client/reads', () => ({
   getCardById: vi.fn(),
 }));
+vi.mock('@/lib/db/firestore/client/cardEdits', () => ({
+  getPendingCardEdit: vi.fn(),
+}));
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'card-1' }),
 }));
@@ -35,6 +38,7 @@ vi.mock('@/components/sections/WriteWorkspace/WriteWorkspace', () => ({
 }));
 
 import { getCardById } from '@/lib/db/firestore/client/reads';
+import { getPendingCardEdit } from '@/lib/db/firestore/client/cardEdits';
 import EditCardPage from './page';
 
 function card(authorId: string): Card {
@@ -67,6 +71,7 @@ function renderPage() {
 
 beforeEach(() => {
   mockUseAuth.mockReturnValue({ user: { id: 'me' }, loading: false });
+  vi.mocked(getPendingCardEdit).mockResolvedValue(null);
 });
 afterEach(() => vi.clearAllMocks());
 
@@ -91,6 +96,53 @@ describe('EditCardPage (client-fetched)', () => {
           thoughtCore: 'A draft core',
           story: 'draft story',
           visibility: 'private',
+        }),
+      }),
+    );
+  });
+
+  it('does not go looking for buffered edits on a draft (there cannot be any)', async () => {
+    vi.mocked(getCardById).mockResolvedValue(card('me'));
+    renderPage();
+    await waitFor(() => expect(screen.getByTestId('write-workspace')).toBeInTheDocument());
+    expect(getPendingCardEdit).not.toHaveBeenCalled();
+    expect(workspaceSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ title: en.write.editTitle }),
+    );
+  });
+
+  // A published card's unsaved revision lives off the live document, so the
+  // editor has to be handed the buffered copy — otherwise reopening it would
+  // silently show the published text and lose the work.
+  it('reopens a published card on its buffered revision, not the live text', async () => {
+    vi.mocked(getCardById).mockResolvedValue({
+      ...card('me'),
+      slug: 'a-published-card',
+      visibility: 'public',
+      publishedAt: new Date('2026-01-02'),
+    });
+    vi.mocked(getPendingCardEdit).mockResolvedValue({
+      thoughtCore: 'A revised core',
+      story: 'the revision in progress',
+      tags: ['t'],
+      visibility: 'public',
+      anonymous: false,
+      accentHue: null,
+      updatedAt: new Date('2026-02-01'),
+    });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByTestId('write-workspace')).toBeInTheDocument());
+    expect(getPendingCardEdit).toHaveBeenCalledWith('card-1');
+    expect(workspaceSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: en.write.editPublishedTitle,
+        initial: expect.objectContaining({
+          id: 'card-1',
+          slug: 'a-published-card',
+          hasPendingEdit: true,
+          thoughtCore: 'A revised core',
+          story: 'the revision in progress',
         }),
       }),
     );

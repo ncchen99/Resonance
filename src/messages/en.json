@@ -235,6 +235,7 @@
   "write": {
     "title": "New card",
     "editTitle": "Edit draft",
+    "editPublishedTitle": "Edit a published card",
     "closeEditor": "Close editor",
     "resizeDivider": "Drag to resize panes",
     "referenceCard": "Original Article",
@@ -304,6 +305,14 @@
     "publish": "Publish",
     "publishing": "Publishing…",
     "autosaved": "Draft saved · {time}",
+    "autosaveHint": "Drafts save themselves — you can leave any time.",
+    "editLiveHint": "This card is already published. Changes are kept privately until you press Save changes.",
+    "editBuffered": "Changes saved privately · {time} (readers still see the old version)",
+    "editBufferedIdle": "You have unsaved changes here — only you can see them.",
+    "saveDraftAndLeave": "Save draft and leave",
+    "saveChanges": "Save changes",
+    "saving": "Saving…",
+    "discardChanges": "Discard changes",
     "publishPanel": {
       "title": "Publish this card",
       "insightLoading": "Reading your story…",
@@ -313,7 +322,11 @@
       "anonymousHint": "Anonymous cards never appear on your profile.",
       "publish": "Publish",
       "publishing": "Publishing…",
-      "cancel": "Not yet"
+      "cancel": "Not yet",
+      "updateTitle": "Update this card",
+      "updateHint": "After this, readers see this version. The publish date stays as it was.",
+      "update": "Save changes",
+      "updating": "Saving…"
     },
     "firstCard": {
       "title": "Write your first card",

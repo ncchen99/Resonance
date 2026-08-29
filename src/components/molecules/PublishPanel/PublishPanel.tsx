@@ -25,6 +25,13 @@ const VISIBILITY_ICON: Record<'public' | 'private', 'globe' | 'lock'> = {
 export interface PublishPanelProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * `'publish'` (default) sends a draft out for the first time. `'update'` is
+   * the same screen for a card that is already live: no mirror moment (that
+   * belongs to first publication) and the action reads 儲存修改 — this is the
+   * click that puts a buffered revision in front of readers.
+   */
+  mode?: 'publish' | 'update';
   /** Current editor state — the draft may be unsaved, so the text travels along. */
   thoughtCore: string;
   story: string;
@@ -49,6 +56,7 @@ export interface PublishPanelProps {
 export function PublishPanel({
   open,
   onClose,
+  mode = 'publish',
   thoughtCore,
   story,
   initialVisibility,
@@ -66,6 +74,7 @@ export function PublishPanel({
   const [anonymous, setAnonymous] = useState(initialAnonymous);
   const [insight, setInsight] = useState<string | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const updating = mode === 'update';
   // One echo per opening — reopening re-reads the (possibly edited) draft.
   const openedRef = useRef(false);
 
@@ -79,6 +88,7 @@ export function PublishPanel({
     setVisibility(initialVisibility);
     setAnonymous(initialAnonymous);
     setInsight(null);
+    if (updating) return;
     setInsightLoading(true);
     let alive = true;
     (async () => {
@@ -105,7 +115,13 @@ export function PublishPanel({
   }, [open]);
 
   return (
-    <Modal open={open} onClose={pending ? undefined : onClose} maxWidth={480} seed={29} ariaLabel={t('title')}>
+    <Modal
+      open={open}
+      onClose={pending ? undefined : onClose}
+      maxWidth={480}
+      seed={29}
+      ariaLabel={updating ? t('updateTitle') : t('title')}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <h2
           style={{
@@ -115,10 +131,24 @@ export function PublishPanel({
             color: 'var(--color-text)',
           }}
         >
-          {t('title')}
+          {updating ? t('updateTitle') : t('title')}
         </h2>
 
-        {/* 1 — the mirror moment */}
+        {/* 1 — the mirror moment (first publication only); for an update, the
+            plain statement of what the button is about to do instead */}
+        {updating && (
+          <p
+            style={{
+              fontFamily: 'var(--font-body)',
+              fontSize: 14,
+              lineHeight: 1.7,
+              color: 'var(--color-text-muted)',
+              margin: 0,
+            }}
+          >
+            {t('updateHint')}
+          </p>
+        )}
         {(insightLoading || insight) && (
           <div
             style={{
@@ -247,7 +277,13 @@ export function PublishPanel({
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ opacity: pending ? 0.6 : 1, pointerEvents: pending ? 'none' : 'auto' }}>
             <OrganicButton variant="primary" size="sm" onClick={() => onPublish({ visibility, anonymous })}>
-              {pending ? t('publishing') : t('publish')}
+              {updating
+                ? pending
+                  ? t('updating')
+                  : t('update')
+                : pending
+                ? t('publishing')
+                : t('publish')}
             </OrganicButton>
           </div>
           <OrganicButton variant="ghost" size="sm" onClick={onClose}>
